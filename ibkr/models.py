@@ -368,6 +368,11 @@ class CancelOrder:
 
         return cancel_order_response
 
+    @classmethod
+    def all_unfilled_orders(cls) -> None:
+        for unfilled_order in UnfilledOrder.get():
+            cancel_order: CancelOrderResponse = CancelOrder(unfilled_order).execute()
+
 class CancelOrderResponse:
     is_order_cancelled: bool
     order_id: str
@@ -479,7 +484,7 @@ class UnfilledOrder:
         return value
 
 
-@dataclass()
+@dataclass
 class AccountInformation:
     available_funds: Decimal
     currency: Currency
@@ -493,3 +498,38 @@ class AccountInformation:
     @classmethod
     def get_by_account_id(cls, account_id: str) -> "AccountInformation":
         return AccountInformation(ibkr_models.AccountInformation.call(account_id))
+
+@dataclass
+class PortfolioPosition:
+    name: str
+    full_name: str
+    symbol: str
+    account_id: str
+    contract_id: int
+    position: Decimal
+    market_price: Decimal
+    market_value: Decimal
+    currency: Currency
+    instrument_type: InstrumentType
+
+    def __init__(self, portfolio_position: ibkr_models.PortfolioPosition):
+        self.name = portfolio_position.name
+        self.full_name = portfolio_position.fullName
+        self.account_id = portfolio_position.acctId
+        self.symbol = portfolio_position.contractDesc
+        self.contract_id = portfolio_position.conid
+        self.market_price = Decimal(str(portfolio_position.mktPrice))
+        self.market_value = Decimal(str(portfolio_position.mktValue))
+        self.currency = global_common.get_enum_from_value(portfolio_position.currency, Currency)
+        self.instrument_type = global_common.get_enum_from_value(portfolio_position.assetClass, InstrumentType)
+        self.position = Decimal(str(portfolio_position.position))
+
+    @classmethod
+    def get_by_account_id(cls, account_id: str) -> List["PortfolioPosition"]:
+        portfolio_positions: ibkr_models.PortfolioPositions = ibkr_models.PortfolioPositions.call(account_id)
+
+        portfolio_position_list: List[PortfolioPosition] = []
+        for portfolio_position in portfolio_positions.portfolio_positions_list:
+            portfolio_position_list.append(PortfolioPosition(portfolio_position))
+
+        return portfolio_position_list
