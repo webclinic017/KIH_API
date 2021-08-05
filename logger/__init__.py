@@ -54,4 +54,4 @@ def __insert_into_log_table(message: str, logger_level: str) -> None:
     parameters = {database.constants.column_Log__Application: database.constants.database_application_name,
                   database.constants.column_Log__Logger_Level: logger_level,
                   database.constants.column_Log__Log: message}
-    database.insert(database.constants.table_Log, parameters)
+    # database.insert(database.constants.table_Log, parameters)
