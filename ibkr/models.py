@@ -295,7 +295,7 @@ class PlaceOrder:
         self.account_id = account_id
 
     def execute(self) -> "PlaceOrderResponse":
-        communication.telegram.send_message(communication.telegram.constants.telegram_channel_username_development,
+        communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
                                             f"<u><b>Placing a new order</b></u>\n\nSymbol: <i>{self.symbol}</i>\nOrder "
                                             f"Type: "
                                             f"<i>{self.orderType.value}</i>\nQuantity: <i>{str(self.quantity)}</i>\nPrice: "
@@ -315,7 +315,7 @@ class PlaceOrder:
                                                                                             price))
 
         if order_response.is_order_placed:
-            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username_development,
+            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
                                                 f"<u><b>Order has been placed successfully</b></u>"
                                                 f"\n\nSymbol: <i>{self.symbol}</i>"
                                                 f"\nOrder Type: <i>{self.orderType.value}</i>"
@@ -323,7 +323,7 @@ class PlaceOrder:
                                                 f"\nPrice: <i>{str(price)}</i>"
                                                 f"\nAccount ID: <i>{self.account_id}</i>", True)
         else:
-            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username_development,
+            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
                                                 f"<u><b>ERROR: Order has not been placed</b></u>"
                                                 f"\n\nSymbol: <i>{self.symbol}</i>"
                                                 f"\nOrder Type: <i>{self.orderType.value}</i>"
@@ -347,7 +347,7 @@ class CancelOrder:
         self.order_id = self.unfilled_order.order_id
 
     def execute(self) -> "CancelOrderResponse":
-        communication.telegram.send_message(communication.telegram.constants.telegram_channel_username_development,
+        communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
                                             f"<u><b>Cancelling an unfilled order</b></u>"
                                             f"\n\nSymbol: <i>{self.unfilled_order.symbol}</i>\n"
                                             f"\nUnfilled Quantity: <i>{str(self.unfilled_order.unfilled_quantity)}</i>"
@@ -358,7 +358,7 @@ class CancelOrder:
         cancel_order_response: CancelOrderResponse = CancelOrderResponse(ibkr.ibkr_models.CancelOrder.call(self.account_id, self.order_id))
 
         if not cancel_order_response.is_order_cancelled:
-            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username_development,
+            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
                                                 f"<u><b>ERROR: Order has not been cancelled</b></u>"
                                                 f"\n\nSymbol: <i>{self.unfilled_order.symbol}</i>\n"
                                                 f"\nUnfilled Quantity: <i>{str(self.unfilled_order.unfilled_quantity)}</i>"

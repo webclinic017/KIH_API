@@ -3,6 +3,7 @@ import sys
 from typing import Dict
 
 environment_variables: Dict[str, str] = {"KIH_API_TELEGRAM_BOT_TOKEN": "telegram bot token",
+                                         "TELEGRAM_BOT_USERNAME": "Telegram bot username",
                                          "KIH_API_EMAIL_ACCOUNT": "outgoing email address",
                                          "KIH_API_EMAIL_ACCOUNT_PASSWORD": "email address' password",
                                          "KIH_API_DATABASE_HOST_NAME": "database' host's name",
