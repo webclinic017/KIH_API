@@ -24,4 +24,7 @@ def keep_alive() -> None:
 def authenticate() -> bool:
     return ReAuthentication.call().is_successful
 
-SelectAccount.execute()
+try:
+    SelectAccount.execute()
+except Exception:
+    pass
