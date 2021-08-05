@@ -1,0 +1,7 @@
+requests
+function
+urllib3
+pytz
+python-dateutil
+pandas
+numpy
