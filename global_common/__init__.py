@@ -1,9 +1,11 @@
 import enum
 import json
+import threading
 from decimal import Decimal
-from typing import Any, Dict, Type, Optional
+from typing import Any, Dict, Type, Optional, Callable
 
 import database
+from ibkr.common import threads
 
 
 def convert_string_to_dict(string: str) -> Dict[Any, Any]:
@@ -30,3 +32,19 @@ def get_enum_from_value(value: Any, enum: Type[enum.Enum]) -> Optional[Any]:
 
 def get_formatted_string_from_decimal(number: Decimal, decimal_places: int = 2) -> Decimal:
     return number.quantize(Decimal(10) ** -decimal_places)
+
+
+def run_as_separate_thread(target: Callable, arguments: tuple = ()) -> threading.Thread:
+    return_function: threading.Thread = threading.Thread(target=target, args=arguments)
+    return_function.start()
+
+    threads[target] = return_function
+    return return_function
+
+
+def is_thread_alive(target: Callable) -> bool:
+    thread: Optional[threading.Thread] = threads.get(target)
+    if thread is None:
+        return False
+    else:
+        return thread.is_alive()

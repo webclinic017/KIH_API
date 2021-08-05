@@ -1,28 +1,12 @@
 import threading
 from decimal import Decimal
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional
 
 threads: Dict[Any, threading.Thread] = {}
 
 
-def run_as_separate_thread(target: Callable, arguments: tuple = ()) -> threading.Thread:
-    return_function: threading.Thread = threading.Thread(target=target, args=arguments)
-    return_function.start()
-
-    threads[target] = return_function
-    return return_function
-
-
-def is_thread_alive(target: Callable) -> bool:
-    thread: Optional[threading.Thread] = threads.get(target)
-    if thread is None:
-        return False
-    else:
-        return thread.is_alive()
-
-
 def get_number_from_text_with_suffixes(number: str) -> Optional[Decimal]:
-    if number.isnumeric():
+    if number.replace(".", "").isnumeric():
         return Decimal(number)
 
     value: Decimal = Decimal(number.replace(number[-1], "").replace(",", ""))
