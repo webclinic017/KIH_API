@@ -533,3 +533,25 @@ class PortfolioPosition:
             portfolio_position_list.append(PortfolioPosition(portfolio_position))
 
         return portfolio_position_list
+
+    @classmethod
+    def close_all_by_account_id(cls, account_id: str) -> List[PlaceOrderResponse]:
+        all_positions: List["PortfolioPosition"] = PortfolioPosition.get_by_account_id(account_id)
+        place_order_response_list: List[PlaceOrderResponse] = []
+        is_all_orders_placed: bool = True
+
+        communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                            f"<u><b>Closing all positions</b></u>"
+                                            f"\n\nAccount ID: <i>{account_id}</i>\n", True)
+
+        for position in all_positions:
+            place_order_response: PlaceOrderResponse = PlaceOrder(position.symbol, OrderType.MARKET, OrderSide.SELL, int(position.position), None, account_id).execute()
+            place_order_response_list.append(place_order_response)
+            if not place_order_response.is_order_placed:
+                is_all_orders_placed = False
+
+        communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                            f"<u><b>ERROR: All positions failed to close</b></u>"
+                                            f"\n\nAccount ID: <i>{account_id}</i>\n", True)
+
+        return place_order_response_list

@@ -5,7 +5,7 @@ import logger
 url = constants.telegram_url.replace("<token>", constants.telegram_bot_token) + constants.telegram_method_send_message
 
 
-def send_message(username: str, message_text: str, is_html: bool) -> None:
+def send_message(username: str, message_text: str, is_html: bool = False) -> None:
     if username[0:1] != "@":
         username = "@" + username
 
