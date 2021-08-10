@@ -60,6 +60,7 @@ class OrderStatus(enum.Enum):
     INACTIVE: str = "Inactive"
     CANCELLED: str = "Cancelled"
     PENDING_SUBMIT: str = "PendingSubmit"
+    FILLED: str = "Filled"
 
 
 @dataclass
@@ -397,7 +398,7 @@ class PlaceOrderResponse:
     response_text: str
 
     def __init__(self, order_response: ibkr_models.PlaceOrderResponse):
-        self.is_order_placed = order_response.is_successful and order_response.order_status == OrderStatus.SUBMITTED.value
+        self.is_order_placed = order_response.is_successful and (order_response.order_status == OrderStatus.SUBMITTED.value or order_response.order_status == OrderStatus.FILLED.value)
         self.ibkr_order_id = order_response.order_id
         self.order_id = order_response.order_id
         self.response_text = order_response.text
