@@ -545,6 +545,9 @@ class PortfolioPosition:
                                             f"\n\nAccount ID: <i>{account_id}</i>\n", True)
 
         for position in all_positions:
+            if position.position == 0:
+                continue
+
             place_order_response: PlaceOrderResponse = PlaceOrder(position.symbol, OrderType.MARKET, OrderSide.SELL, int(position.position), None, account_id).execute()
             place_order_response_list.append(place_order_response)
             if not place_order_response.is_order_placed:
