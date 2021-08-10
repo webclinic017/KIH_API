@@ -55,6 +55,7 @@ class StockExchanges(enum.Enum):
     NYSE: str = "NYSE"
     CBOE: str = "CBOE"
 
+
 class OrderStatus(enum.Enum):
     SUBMITTED: str = "Submitted"
     INACTIVE: str = "Inactive"
@@ -276,8 +277,8 @@ class PlaceOrder:
     side: OrderSide
     quantity: Decimal
     account_id: str
+    custom_order_id: str
     price: Decimal = None
-    custom_order_id: str = str(uuid.uuid4())
     outsideRTH: bool = True
     tif: OrderTimeInForce = OrderTimeInForce.GOOD_TILL_CANCEL
 
@@ -294,12 +295,14 @@ class PlaceOrder:
             self.outsideRTH = False
 
         self.account_id = account_id
+        self.custom_order_id = str(uuid.uuid4())
 
     def execute(self) -> "PlaceOrderResponse":
         communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
-                                            f"<u><b>Placing a new order</b></u>\n\nSymbol: <i>{self.symbol}</i>\nOrder "
-                                            f"Type: "
-                                            f"<i>{self.orderType.value}</i>\nQuantity: <i>{str(self.quantity)}</i>\nPrice: "
+                                            f"<u><b>Placing a new order</b></u>\n\nSymbol: <i>{self.symbol}</i>"
+                                            f"\nOrder Type: <i>{self.orderType.value}</i>"
+                                            f"\nOrder Side: <i>{self.side.value}</i>"
+                                            f"\nQuantity: <i>{str(self.quantity)}</i>\nPrice: "
                                             f"<i>{str(self.price)}</i>\nAccount ID: <i>{self.account_id}</i>", True)
 
         stock: Instrument = Instrument.get(self.symbol, InstrumentType.STOCK, StockExchanges.NASDAQ)
@@ -315,9 +318,17 @@ class PlaceOrder:
                                                                                             int(self.quantity), self.custom_order_id,
                                                                                             price))
 
-        if order_response.is_order_placed:
+        if order_response.is_order_filled:
             communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
-                                                f"<u><b>Order has been placed successfully</b></u>"
+                                                f"<u><b>Order has been placed and filled</b></u>"
+                                                f"\n\nSymbol: <i>{self.symbol}</i>"
+                                                f"\nOrder Type: <i>{self.orderType.value}</i>"
+                                                f"\nQuantity: <i>{str(self.quantity)}</i>"
+                                                f"\nPrice: <i>{str(price)}</i>"
+                                                f"\nAccount ID: <i>{self.account_id}</i>", True)
+        elif order_response.is_order_placed:
+            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                                f"<u><b>Order has been placed (but not filled)</b></u>"
                                                 f"\n\nSymbol: <i>{self.symbol}</i>"
                                                 f"\nOrder Type: <i>{self.orderType.value}</i>"
                                                 f"\nQuantity: <i>{str(self.quantity)}</i>"
@@ -333,6 +344,7 @@ class PlaceOrder:
                                                 f"\nAccount ID: <i>{self.account_id}</i>"
                                                 f"\nResponse Message: <i>{ibkr.common.get_html_commented(order_response.response_text)}</i>",
                                                 True)
+
         return order_response
 
 
@@ -374,6 +386,7 @@ class CancelOrder:
         for unfilled_order in UnfilledOrder.get():
             cancel_order: CancelOrderResponse = CancelOrder(unfilled_order).execute()
 
+
 class CancelOrderResponse:
     is_order_cancelled: bool
     order_id: str
@@ -396,6 +409,7 @@ class PlaceOrderResponse:
     order_id: str
     order_cancelled: datetime.datetime
     response_text: str
+    is_order_filled: bool
 
     def __init__(self, order_response: ibkr_models.PlaceOrderResponse):
         self.is_order_placed = order_response.is_successful and (order_response.order_status == OrderStatus.SUBMITTED.value or order_response.order_status == OrderStatus.FILLED.value)
@@ -409,6 +423,13 @@ class PlaceOrderResponse:
                                                                                                                "")
             self.order_cancelled = pytz.timezone("Asia/Hong_Kong").localize(
                 datetime.datetime.strptime(datetime_string, "%Y%m%d %H:%M:%S"))
+
+        for live_order in LiveOrders.call().live_orders_list:
+            if str(live_order.orderId) == order_response.order_id:
+                self.is_order_filled = True
+                break
+            else:
+                self.is_order_filled = False
 
 
 @dataclass
@@ -464,7 +485,7 @@ class UnfilledOrder:
 
         unfilled_orders_list: List[UnfilledOrder] = []
         for live_order in live_orders.live_orders_list:
-            if live_order.status != OrderStatus.INACTIVE.value and live_order.status != OrderStatus.CANCELLED.value:
+            if live_order.status != OrderStatus.INACTIVE.value and live_order.status != OrderStatus.CANCELLED.value and live_order.status != OrderStatus.FILLED.value:
                 unfilled_orders_list.append(UnfilledOrder(live_order))
 
         return unfilled_orders_list
@@ -490,15 +511,18 @@ class AccountInformation:
     available_funds: Decimal
     currency: Currency
     updated_at: datetime.datetime
+    net_liquidity: Decimal
 
     def __init__(self, account_information: ibkr_models.AccountInformation):
-        self.available_funds = Decimal(str(account_information.fullavailablefunds.amount))
+        self.available_funds = Decimal(str(account_information.totalcashvalue.amount))
         self.currency = global_common.get_enum_from_value(account_information.fullavailablefunds.currency, Currency)
         self.updated_at = datetime.datetime.utcfromtimestamp(int(account_information.fullavailablefunds.timestamp / 1000))
+        self.net_liquidity = Decimal(str(account_information.netliquidation.amount))
 
     @classmethod
     def get_by_account_id(cls, account_id: str) -> "AccountInformation":
         return AccountInformation(ibkr_models.AccountInformation.call(account_id))
+
 
 @dataclass
 class PortfolioPosition:
@@ -549,13 +573,20 @@ class PortfolioPosition:
             if position.position == 0:
                 continue
 
-            place_order_response: PlaceOrderResponse = PlaceOrder(position.symbol, OrderType.MARKET, OrderSide.SELL, int(position.position), None, account_id).execute()
+            order_side: OrderSide = OrderSide.SELL if position.position > 0 else OrderSide.BUY
+
+            place_order_response: PlaceOrderResponse = PlaceOrder(position.symbol, OrderType.MARKET, order_side, abs(int(position.position)), None, account_id).execute()
             place_order_response_list.append(place_order_response)
             if not place_order_response.is_order_placed:
                 is_all_orders_placed = False
 
-        communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
-                                            f"<u><b>ERROR: All positions failed to close</b></u>"
-                                            f"\n\nAccount ID: <i>{account_id}</i>\n", True)
+        if not is_all_orders_placed:
+            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                                    f"<u><b>ERROR: All positions failed to close</b></u>"
+                                                    f"\n\nAccount ID: <i>{account_id}</i>\n", True)
+        else:
+            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                                f"<i>Orders placed to close all positions</i>"
+                                                f"\nAccount ID: <i>{account_id}</i>\n", True)
 
         return place_order_response_list

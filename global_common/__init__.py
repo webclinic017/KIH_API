@@ -33,7 +33,7 @@ def get_enum_from_value(value: Any, enum: Type[enum.Enum]) -> Optional[Any]:
 
 
 def get_formatted_string_from_decimal(number: Decimal, decimal_places: int = 2) -> Decimal:
-    return number.quantize(Decimal(10) ** -decimal_places)
+    return f'{number.quantize(Decimal(10) ** -decimal_places):,}'
 
 
 def run_as_separate_thread(target: Callable, arguments: tuple = ()) -> None:
