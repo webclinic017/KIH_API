@@ -41,8 +41,10 @@ def post(url: str, parameters: Optional[Dict[str, Any]] = None) -> Response:
 def put(url: str, parameters: Optional[Dict[str, Any]] = None) -> Response:
     return request(url, parameters, MethodType.PUT)
 
+
 def delete(url: str, parameters: Optional[Dict[str, Any]] = None) -> Response:
     return request(url, parameters, MethodType.DELETE)
+
 
 def request(url: str, parameters: Optional[Dict[str, Any]], method_type: MethodType, server_error_retry_times: int = 0) -> Response:
     global is_ssl_certificate_verification_used

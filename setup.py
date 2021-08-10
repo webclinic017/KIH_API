@@ -19,7 +19,8 @@ def set_environment_variable(key: str, value: str) -> None:
     elif sys.platform == "win32":
         os.system("setx " + key + " \"" + value.replace("\"", "") + "\"")
     elif sys.platform == "linux":
-        os.system("export " + key + "=" + value)
+        os.system(f"echo \"export {key}=\"{value}\" >> ~/.bash_profile")
+        os.system("source ~/.bash_profile")
 
 
 if __name__ == "__main__":
