@@ -2,6 +2,8 @@ import os
 import sys
 from typing import Dict
 
+import global_common
+
 environment_variables: Dict[str, str] = {"KIH_API_TELEGRAM_BOT_TOKEN": "telegram bot token",
                                          "TELEGRAM_BOT_USERNAME": "Telegram bot username",
                                          "KIH_API_EMAIL_ACCOUNT": "outgoing email address",
@@ -17,10 +19,10 @@ def set_environment_variable(key: str, value: str) -> None:
     if value == "":
         return
     elif sys.platform == "win32":
-        os.system("setx " + key + " \"" + value.replace("\"", "") + "\"")
+        global_common.run_command(["setx " + key + " \"" + value.replace("\"", "") + "\""])
     elif sys.platform == "linux":
-        os.system(f"echo \"export {key}=\"{value}\" >> ~/.bash_profile")
-        os.system("source ~/.bash_profile")
+        global_common.run_command([f"echo \"export {key}=\"{value}\" >> ~/.bash_profile"])
+        global_common.run_command(["source ~/.bash_profile"])
 
 
 if __name__ == "__main__":

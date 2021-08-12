@@ -39,3 +39,14 @@ def get_formatted_string_from_decimal(number: Decimal, decimal_places: int = 2) 
 def run_as_separate_thread(target: Callable, arguments: tuple = ()) -> None:
     return_function: threading.Thread = threading.Thread(target=target, args=arguments)
     return_function.start()
+
+def run_command(command_list: List[str]) -> List[str]:
+    output_list: List[str] = []
+
+    for command in command_list:
+        output_list.extend(subprocess.run(command.split(" "), stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n"))
+
+    for output in output_list:
+        logger.info(output_list)
+
+    return output_list
