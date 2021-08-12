@@ -57,7 +57,7 @@ def get_running_processes(command: str) -> List[Dict[str, str]]:
     processes_list: List[Dict[str, str]] = []
     for result in results_list:
         if command in result:
-            processes_list.append({"PID": result.split("")[0], "Command": result.replace(result.split(" ")[0], "")})
+            processes_list.append({"PID": result.split(" ")[0], "Command": result.replace(result.split(" ")[0], "")})
 
     return processes_list
 
