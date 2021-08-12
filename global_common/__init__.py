@@ -47,7 +47,7 @@ def run_command(command_list: List[str], seperate_process: bool = False) -> Unio
             subprocess.Popen(command, shell=True)
             return None
         else:
-            output_list.extend(subprocess.run(command.split(" "), stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n"))
+            output_list.extend(subprocess.run(command.split(" "), shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n"))
 
     for output in output_list:
         logger.info(output)
