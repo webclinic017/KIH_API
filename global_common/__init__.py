@@ -75,7 +75,8 @@ def kill_process(keyword: str, command: str) -> bool:
     return is_process_found_and_killed
 
 
-def update_code_base(project_directory: str) -> None:
+def update_code_base(project_directory: str, main_branch_name: str = "main") -> None:
     os.chdir(project_directory)
-    run_command(["git reset --hard origin/main"])
-    run_command(["git pull origin main"])
+
+    run_command([f"git reset --hard origin/{main_branch_name}"])
+    run_command([f"git pull origin {main_branch_name}"])
