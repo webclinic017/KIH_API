@@ -101,15 +101,29 @@ class Instrument:
         if contract_id is None:
             raise StockDataNotAvailableException()
 
-        self.symbol = symbol
-        self.contract_id = contract_id
-        self.exchanges_list = exchanges_list
-        self.main_exchange = main_exchange
-        self.name = name
         self.last_price = Decimal(str(last_price.replace("C", "").replace("H", "")))
-        self.change_in_currency = Decimal(str(change_in_currency))
-        self.change_in_percentage = Decimal(str(change_in_percentage))
-        self.instrument_type = global_common.get_enum_from_value(instrument_type, InstrumentType)
+        self.symbol = symbol
+
+        if contract_id is not None:
+            self.contract_id = contract_id
+
+        if exchanges_list is not None:
+            self.exchanges_list = exchanges_list
+
+        if name is not None:
+            self.name = name
+
+        if instrument_type is not None:
+            self.instrument_type = global_common.get_enum_from_value(instrument_type, InstrumentType)
+
+        if main_exchange is not None:
+            self.main_exchange = main_exchange
+
+        if change_in_percentage is not None:
+            self.change_in_percentage = Decimal(str(change_in_percentage))
+
+        if change_in_currency is not None:
+            self.change_in_currency = Decimal(str(change_in_currency))
 
         if bid_price is not None:
             self.bid_price = Decimal(str(bid_price))
@@ -157,7 +171,7 @@ class Instrument:
             self.dividend_yield = Decimal(str(dividend_yield).replace("%", ""))
 
     @classmethod
-    def get(cls, symbol: str, instrument_type: InstrumentType, exchange: StockExchanges) -> "Instrument":
+    def get(cls, symbol: str, instrument_type: InstrumentType, exchange: StockExchanges, number_of_tries: int = 0) -> "Instrument":
         stock_search_results: StockSearchResults = StockSearchResults.call(symbol)
         contract_id: int = None
 
@@ -171,6 +185,12 @@ class Instrument:
 
         contract: Contract = Contract.call(contract_id)
         market_data_snapshot: MarketDataSnapshot = MarketDataSnapshot.call(contract_id)
+
+        if market_data_snapshot.last_price is None:
+            if number_of_tries <= ibkr.constants.NUMBER_OF_RE_TRIES:
+                return Instrument.get(symbol, instrument_type, exchange, number_of_tries + 1)
+            else:
+                raise StockDataNotAvailableException()
 
         if contract.instrument_type != instrument_type.value:
             raise StockNotFoundException()

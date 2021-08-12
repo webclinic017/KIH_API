@@ -19,3 +19,4 @@ ENDPOINT_LIVE_ORDERS: str = ENDPOINT_BASE + "iserver/account/orders"
 ENDPOINT_ACCOUNT_INFORMATION: str = ENDPOINT_BASE + "portfolio/{account_id}/summary"
 ENDPOINT_SELECT_ACCOUNT: str = ENDPOINT_BASE + "iserver/accounts"
 ENDPOINT_PLACE_ORDER_REPLY: str = ENDPOINT_BASE + "iserver/reply/{reply_id}"
+NUMBER_OF_RE_TRIES: int = 3
