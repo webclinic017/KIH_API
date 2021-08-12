@@ -50,3 +50,24 @@ def run_command(command_list: List[str]) -> List[str]:
         logger.info(output_list)
 
     return output_list
+
+def get_running_processes(command: str) -> List[Dict[str, str]]:
+    results_list: List[str] = run_command([f"sudo pgrep -a {command}"])
+
+    processes_list: List[Dict[str, str]] = []
+    for result in results_list:
+        if command in result:
+            processes_list.append({"PID": result.split[0], "Command": result.replace(result.split(" ")[0], "")})
+
+    return processes_list
+
+def kill_process(keyword: str, command: str) -> bool:
+    processes_list: List[Dict[str, str]] = get_running_processes()
+    is_process_found_and_killed = False
+
+    for process in processes_list:
+        if keyword in process["Command"]:
+            run_command(f"kill -9 {process['PID']}")
+            is_process_found_and_killed = True
+
+    return is_process_found_and_killed
