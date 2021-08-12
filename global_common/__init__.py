@@ -3,7 +3,7 @@ import os
 import subprocess
 import threading
 from decimal import Decimal
-from typing import Any, Dict, Type, Optional, Callable, List
+from typing import Any, Dict, Type, Optional, Callable, List, Union
 
 import logger
 
@@ -39,11 +39,15 @@ def run_as_separate_thread(target: Callable, arguments: tuple = ()) -> None:
     return_function.start()
 
 
-def run_command(command_list: List[str]) -> List[str]:
+def run_command(command_list: List[str], seperate_process: bool = False) -> Union[List[str], None]:
     output_list: List[str] = []
 
     for command in command_list:
-        output_list.extend(subprocess.run(command.split(" "), stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n"))
+        if seperate_process:
+            subprocess.Popen(command, shell=True)
+            return None
+        else:
+            output_list.extend(subprocess.run(command.split(" "), stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n"))
 
     for output in output_list:
         logger.info(output)
