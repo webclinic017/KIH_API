@@ -71,3 +71,8 @@ def kill_process(keyword: str, command: str) -> bool:
             is_process_found_and_killed = True
 
     return is_process_found_and_killed
+
+def update_code_base(project_directory: str) -> None:
+    os.chdir(working_directory)
+    global_common.run_command(["git reset --hard origin/main"])
+    global_common.run_command(["git pull origin main"])
