@@ -3,7 +3,7 @@ import enum
 import json
 import threading
 from decimal import Decimal
-from typing import Any, Dict, Type, Optional, Callable
+from typing import Any, Dict, Type, Optional, Callable, List
 
 import database
 import pytz
