@@ -68,7 +68,7 @@ def kill_process(keyword: str, command: str) -> bool:
 
     for process in processes_list:
         if keyword in process["Command"]:
-            run_command(f"kill -9 {process['PID']}")
+            run_command([f"kill -9 {process['PID']}"])
             is_process_found_and_killed = True
 
     return is_process_found_and_killed
