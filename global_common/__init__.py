@@ -39,15 +39,12 @@ def run_as_separate_thread(target: Callable, arguments: tuple = ()) -> None:
     return_function.start()
 
 
-def run_command(command_list: List[str], seperate_process: bool = False) -> Union[List[str], None]:
+def run_command(command_list: List[str]) -> Union[List[str], None]:
     output_list: List[str] = []
 
     for command in command_list:
-        if seperate_process:
-            subprocess.Popen(command, shell=True)
-            return None
-        else:
-            output_list.extend(subprocess.run(command.split(" "), shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n"))
+        logger.info("Running command: " + command)
+        output_list.extend(subprocess.run(command, shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n"))
 
     for output in output_list:
         logger.info(output)
