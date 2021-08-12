@@ -80,3 +80,6 @@ def update_code_base(project_directory: str, main_branch_name: str = "main") -> 
 
     run_command([f"git reset --hard origin/{main_branch_name}"])
     run_command([f"git pull origin {main_branch_name}"])
+
+    if "requirements.txt" in os.listdir(project_directory):
+        run_command([f"pip install -r requirements.txt"])
