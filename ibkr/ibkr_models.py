@@ -6,15 +6,9 @@ from typing import List, Optional, Any, Dict
 from requests import Response
 
 import http_requests
+from http_requests.models import ResponseObject
 from ibkr import constants
 from ibkr.exceptions import StockNotFoundException, MarketOrderOutsideRTHException
-
-
-@dataclass
-class ResponseObject:
-    response: Response
-    is_successful: bool
-    endpoint: str
 
 
 @dataclass
@@ -518,7 +512,7 @@ class PastMarketData:
         self.high = Decimal(str(h))
         self.low = Decimal(str(l))
         self.volume = Decimal(str(v))
-        self.timestamp = datetime.datetime.utcfromtimestamp(int(t/ 1000))
+        self.timestamp = datetime.datetime.utcfromtimestamp(int(t / 1000))
 
 
 @dataclass
@@ -582,7 +576,7 @@ class MarketDataHistory(ResponseObject):
     def call(cls, contract_id: int, period: str, bar: str) -> "MarketDataHistory":
         response: Response = http_requests.get(cls.endpoint.replace("{contract_id}",
                                                                     str(contract_id)).replace("{period}",
-                                                                                                      period).replace(
+                                                                                              period).replace(
             "{bar}", bar))
         return MarketDataHistory.create(response)
 
@@ -1434,6 +1428,7 @@ class AccountInformationDetail:
         self.value = value
         self.severity = severity
 
+
 @dataclass
 class SelectAccount(ResponseObject):
     accounts: Optional[List[str]] = None
@@ -1455,6 +1450,7 @@ class SelectAccount(ResponseObject):
         select_account.endpoint = response.url
 
         return select_account
+
 
 @dataclass
 class PlaceOrderReply(ResponseObject):

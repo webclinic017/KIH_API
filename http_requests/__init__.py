@@ -1,4 +1,3 @@
-import enum
 import json
 import time
 from typing import Dict, Optional, Any
@@ -10,16 +9,10 @@ from requests import Response
 import logger
 import database.constants
 import http_requests.constants as constants
+from http_requests.models import MethodType
 
 is_ssl_certificate_verification_used: bool = True
 urllib3.disable_warnings()
-
-
-class MethodType(enum.Enum):
-    GET: str = "GET"
-    POST: str = "POST"
-    PUT: str = "PUT"
-    DELETE: str = "DELETE"
 
 
 class ServerErrorException(Exception):
@@ -30,35 +23,35 @@ class ClientErrorException(Exception):
     pass
 
 
-def get(url: str, parameters: Optional[Dict[str, Any]] = None) -> Response:
-    return request(url, parameters, MethodType.GET)
+def get(url: str, parameters: Optional[Dict[str, Any]] = None, headers: Dict[str, str] = None) -> Response:
+    return request(url, parameters, MethodType.GET, headers=headers)
 
 
-def post(url: str, parameters: Optional[Dict[str, Any]] = None) -> Response:
-    return request(url, parameters, MethodType.POST)
+def post(url: str, parameters: Optional[Dict[str, Any]] = None, headers: Dict[str, str] = None) -> Response:
+    return request(url, parameters, MethodType.POST, headers=headers)
 
 
-def put(url: str, parameters: Optional[Dict[str, Any]] = None) -> Response:
-    return request(url, parameters, MethodType.PUT)
+def put(url: str, parameters: Optional[Dict[str, Any]] = None, headers: Dict[str, str] = None) -> Response:
+    return request(url, parameters, MethodType.PUT, headers=headers)
 
 
-def delete(url: str, parameters: Optional[Dict[str, Any]] = None) -> Response:
-    return request(url, parameters, MethodType.DELETE)
+def delete(url: str, parameters: Optional[Dict[str, Any]] = None, headers: Dict[str, str] = None) -> Response:
+    return request(url, parameters, MethodType.DELETE, headers=headers)
 
 
-def request(url: str, parameters: Optional[Dict[str, Any]], method_type: MethodType, server_error_retry_times: int = 0) -> Response:
+def request(url: str, parameters: Optional[Dict[str, Any]], method_type: MethodType, server_error_retry_times: int = 0, headers: Dict[str, str] = None) -> Response:
     global is_ssl_certificate_verification_used
     start_time: float = time.time()
 
     response: Response = None
     if method_type == MethodType.GET:
-        response = requests.get(url=url, params=parameters, verify=is_ssl_certificate_verification_used)
+        response = requests.get(url=url, params=parameters, verify=is_ssl_certificate_verification_used, headers=headers)
     elif method_type == MethodType.POST:
-        response = requests.post(url=url, json=parameters, verify=is_ssl_certificate_verification_used)
+        response = requests.post(url=url, json=parameters, verify=is_ssl_certificate_verification_used, headers=headers)
     elif method_type == MethodType.PUT:
-        response = requests.put(url=url, params=parameters, verify=is_ssl_certificate_verification_used)
+        response = requests.put(url=url, params=parameters, verify=is_ssl_certificate_verification_used, headers=headers)
     elif method_type == MethodType.DELETE:
-        response = requests.delete(url=url, params=parameters, verify=is_ssl_certificate_verification_used)
+        response = requests.delete(url=url, params=parameters, verify=is_ssl_certificate_verification_used, headers=headers)
 
     if 400 <= response.status_code <= 499:
         print("Response code: " + str(response.status_code))
