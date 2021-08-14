@@ -47,9 +47,9 @@ class UserProfiles(ResponseObject):
     @classmethod
     def call(cls) -> List["UserProfiles"]:
         response: Response = http_requests.get(cls.endpoint, headers=constants.HEADERS)
-        user_profile_list: List[UserProfiles] = common.get_model_from_response(response, cls)      # type: ignore
+        user_profile_list: List[UserProfiles] = common.get_model_from_response(response, cls)  # type: ignore
         for user_profile in user_profile_list:
-            user_profile.details = UserProfileDetails(**user_profile.details)    # type: ignore
+            user_profile.details = UserProfileDetails(**user_profile.details)  # type: ignore
 
         return user_profile_list
 
@@ -95,7 +95,7 @@ class Balance:
         self.id = id
         self.balanceType = balanceType
         self.currency = currency
-        self.amount = Amount(**amount)   # type: ignore
+        self.amount = Amount(**amount)  # type: ignore
         self.reservedAmount = Amount(**reservedAmount)
 
 
@@ -114,12 +114,12 @@ class Account(ResponseObject):
     @classmethod
     def call(cls, profile_id: str) -> List["Account"]:
         response: Response = http_requests.get(cls.endpoint.replace("{profile_id}", str(profile_id)), headers=constants.HEADERS)
-        accounts_list: List[Account] = common.get_model_from_response(response, cls)    # type: ignore
+        accounts_list: List[Account] = common.get_model_from_response(response, cls)  # type: ignore
 
         for account in accounts_list:
             balances_list: List[Balance] = []
             for balance in account.balances:
-                balances_list.append(Balance(**balance)) # type: ignore
+                balances_list.append(Balance(**balance))  # type: ignore
             account.balances = balances_list
 
         return accounts_list
@@ -367,9 +367,9 @@ class Recipient(ResponseObject):
     @classmethod
     def call(cls, profile_id: int) -> List["Recipient"]:
         response: Response = http_requests.get(cls.endpoint.replace("{profile_id}", str(profile_id)), headers=constants.HEADERS)
-        recipient_list: List[Recipient] = common.get_model_from_response(response, cls) # type: ignore
+        recipient_list: List[Recipient] = common.get_model_from_response(response, cls)  # type: ignore
         for recipient in recipient_list:
-            recipient.details = RecipientDetails(**recipient.details) # type: ignore
+            recipient.details = RecipientDetails(**recipient.details)  # type: ignore
 
         return recipient_list
 

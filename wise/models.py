@@ -5,9 +5,9 @@ from typing import List, Optional
 
 import communication.telegram
 import global_common
-from logger import logger
 import wise_models
 from http_requests import ClientErrorException
+from logger import logger
 from wise.exceptions import MultipleUserProfilesWithSameTypeException, MultipleRecipientsWithSameAccountNumberException, TransferringMoneyToNonSelfOwnedAccountsException
 
 
@@ -165,7 +165,7 @@ class Transfer:
     @classmethod
     def execute(cls, receiving_amount: Decimal, from_currency: global_common.Currency, to_currency: global_common.Currency, recipient_account_number: str, reference: str, profile_type: ProfileTypes) -> "Transfer":
         recipient: Recipient = Recipient.get_by_account_number_and_profile_type(recipient_account_number, profile_type)
-        
+
         if not recipient.is_self_owned:
             raise TransferringMoneyToNonSelfOwnedAccountsException()
 

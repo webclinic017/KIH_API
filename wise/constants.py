@@ -12,4 +12,3 @@ ENDPOINT_TRANSFER: str = ENDPOINT_BASE + "v1/transfers"
 ENDPOINT_QUOTE: str = ENDPOINT_BASE + "v2/quotes"
 ENDPOINT_RECIPIENT_ACCOUNTS_LIST: str = ENDPOINT_BASE + "v1/accounts?profile={profile_id}"
 ENDPOINT_FUND: str = ENDPOINT_BASE + "v3/profiles/{profile_id}/transfers/{transfer_id}/payments"
-
