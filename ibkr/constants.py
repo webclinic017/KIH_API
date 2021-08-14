@@ -2,7 +2,7 @@ KEEP_ALIVE_TIMEOUT_IN_SECONDS: int = 60
 ENDPOINT_BASE: str = "https://localhost:5000/v1/api/"
 ENDPOINT_KEEP_ALIVE: str = ENDPOINT_BASE + "tickle"
 ENDPOINT_AUTHENTICATION_STATUS: str = ENDPOINT_BASE + "iserver/auth/status"
-ENDPOINT_RE_AUTHENTICATE: str = ENDPOINT_BASE + "iserver/reauthenticate"
+ENDPOINT_RE_AUTHENTICATE: str = ENDPOINT_BASE + "iserver/reauthenticate?force=true"
 ENDPOINT_PORTFOLIO_ACCOUNTS: str = ENDPOINT_BASE + "portfolio/accounts"
 ENDPOINT_PORTFOLIO_POSITIONS: str = ENDPOINT_BASE + "portfolio/{accountId}/positions/0"
 ENDPOINT_STOCK_SEARCH: str = ENDPOINT_BASE + "iserver/secdef/search"
