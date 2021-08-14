@@ -12,7 +12,7 @@ start_time = time.time()
 database_connection = None
 
 
-# logger.debug(database.constants.execution_type__Database + "|" + "Connection Establishment" + "|" + start_time)
+# logger.debug(database.constants.execution_type__Database + "|" + "Connection Establishment" + "|" + str(time.time() - start_time))
 
 
 def insert(table_name: str, parameters: Dict[str, Any]) -> None:
@@ -80,9 +80,9 @@ def __execute_query(query: str) -> None:
     # database_connection.commit()
     #
     # if query.lower().startswith("insert") and not query.lower().startswith("insert into `kih-db1`." + database.constants.table_Performance.lower()):
-    #     logger.debug(database.constants.execution_type__Database + "|" + "INSERT" + "|" + query + "|" + start_time)
+    #     logger.debug(database.constants.execution_type__Database + "|" + "INSERT" + "|" + query + "|" + str(time.time() - start_time))
     # elif query.lower().startswith("update"):
-    #     logger.debug(database.constants.execution_type__Database + "|" + "UPDATE" + "|" + query + "|" + start_time)
+    #     logger.debug(database.constants.execution_type__Database + "|" + "UPDATE" + "|" + query + "|" + str(time.time() - start_time))
     #
     # return number_of_rows_affected
     pass
@@ -95,7 +95,7 @@ def select(query: str) -> Any:
 
     start_time = time.time()
     database_cursor.execute(query)
-    logger.debug(database.constants.execution_type__Database + "|" + "SELECT" + "|" + query + "|" + start_time)
+    logger.debug(database.constants.execution_type__Database + "|" + "SELECT" + "|" + query + "|" + str(time.time() - start_time))
 
     data = database_cursor.fetchall()
     return data
