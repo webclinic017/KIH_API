@@ -1,34 +1,25 @@
-import logging
+import logging as python_logging
 import time
 from typing import Any, Dict
 
 import database.constants
 
-logger = logging.getLogger();
+logger = python_logging.getLogger()
+python_logging.basicConfig(level=python_logging.DEBUG, format="%(asctime)s | %(levelname)s | %(pathname)s - %(lineno)d\n%(message)s")
 
-logger.setLevel(logging.DEBUG)
 
-
-# logger.setLevel(logging.INFO)
-# logger.setLevel(logging.WARNING)
-# logger.setLevel(logging.ERROR)
-# logger.setLevel(logging.CRITICAL)
-
-def debug(message: str) -> None:
-    print("DEBUG | " + str(message))
-    logger.debug(str(message))
+def debug(message: str, **kwargs) -> None:
+    logger.debug(msg=str(message), **kwargs)
     __insert_into_log_table(message, "DEBUG")
 
 
-def info(message: str) -> None:
-    print("INFO | " + str(message))
-    logger.info(str(message))
+def info(message: str, **kwargs) -> None:
+    logger.info(msg=str(message), **kwargs)
     __insert_into_log_table(message, "INFO")
 
 
-def error(message: str) -> None:
-    print("ERROR | " + str(message))
-    logger.error(str(message))
+def error(message: str, **kwargs) -> None:
+    logger.error(msg=str(message), **kwargs)
     __insert_into_log_table(message, "ERROR")
 
 
@@ -47,7 +38,7 @@ def performance(execution_type: str, execution_subtype: str, execution_command: 
     if description is not None:
         log_message = log_message + " | " + description
 
-    print(log_message)
+    debug(log_message)
 
 
 def __insert_into_log_table(message: str, logger_level: str) -> None:
