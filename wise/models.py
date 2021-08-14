@@ -196,3 +196,4 @@ class Transfer:
                                                 f"\nReason: <i>{str(e)}</i>"
                                                 f"\nReference: <i>{reference}</i>", True)
 
+            return None
