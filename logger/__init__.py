@@ -5,7 +5,7 @@ from typing import Any, Dict
 import database.constants
 
 logger = python_logging.getLogger()
-python_logging.basicConfig(level=python_logging.DEBUG, format="%(asctime)s | %(levelname)s | %(pathname)s - %(lineno)d\n%(message)s")
+python_logging.basicConfig(level=python_logging.DEBUG, format="%(asctime)s | %(levelname)s | %(pathname)s - %(lineno)d\n%(message)s\n")
 
 
 def debug(message: str, **kwargs) -> None:
