@@ -2,7 +2,7 @@ import logging as python_logging
 import time
 
 logger = python_logging.getLogger()
-python_logging.basicConfig(level=python_logging.DEBUG, format="%(asctime)s | %(levelname)s | %(pathname)s - %(lineno)d\n%(message)s\n")
+python_logging.basicConfig(level=python_logging.DEBUG, format="%(asctime)s | %(levelname)s | %(message)s")
 
 
 def performance(execution_type: str, execution_subtype: str, execution_command: str, start_time: float, description: str = None) -> None:
