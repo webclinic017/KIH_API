@@ -14,27 +14,27 @@ from wise import constants
 
 @dataclass
 class UserProfileDetails:
-    avatar: None
-    occupation: None
-    occupations: None
-    first_name_in_kana: None
-    last_name_in_kana: None
-    acn: None
-    abn: None
-    arbn: None
-    webpage: None
-    business_sub_category: None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    date_of_birth: Optional[datetime] = None
-    phone_number: Optional[str] = None
-    primary_address: Optional[int] = None
+    occupations: None = None
+    acn: None = None
+    abn: None = None
+    arbn: None = None
+    webpage: None = None
+    businessSubCategory: None = None
+    avatar: Optional[str] = None
+    occupation: Optional[str] = None
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    dateOfBirth: Optional[datetime] = None
+    phoneNumber: Optional[str] = None
+    primaryAddress: Optional[int] = None
     name: Optional[str] = None
-    registration_number: Optional[str] = None
-    company_type: Optional[str] = None
-    company_role: Optional[str] = None
-    description_of_business: Optional[str] = None
-    business_category: Optional[str] = None
+    registrationNumber: Optional[str] = None
+    companyType: Optional[str] = None
+    companyRole: Optional[str] = None
+    descriptionOfBusiness: Optional[str] = None
+    businessCategory: Optional[str] = None
+    firstNameInKana: Optional[str] = None
+    lastNameInKana: Optional[str] = None
 
 
 @dataclass
@@ -47,7 +47,11 @@ class UserProfiles(ResponseObject):
     @classmethod
     def call(cls) -> List["UserProfiles"]:
         response: Response = http_requests.get(cls.endpoint, headers=constants.HEADERS)
-        return common.get_model_from_response(response, cls)  # type: ignore
+        user_profile_list: List[UserProfiles] = common.get_model_from_response(response, cls)      # type: ignore
+        for user_profile in user_profile_list:
+            user_profile.details = UserProfileDetails(**user_profile.details)
+
+        return user_profile_list
 
 
 @dataclass
@@ -80,11 +84,19 @@ class BankDetails:
 
 @dataclass
 class Balance:
+    id: Optional[int] = None
     balanceType: Optional[str] = None
     currency: Optional[str] = None
     amount: Optional[Amount] = None
     reservedAmount: Optional[Amount] = None
     bankDetails: Optional[BankDetails] = None
+
+    def __init__(self, id: int, balanceType: str, currency: str, amount: str, reservedAmount: Dict[str, Any], bankDetails: Dict[str, Any]):
+        self.id = id
+        self.balanceType = balanceType
+        self.currency = currency
+        self.amount = Amount(**amount)
+        self.reservedAmount = Amount(**reservedAmount)
 
 
 @dataclass
@@ -102,7 +114,15 @@ class Account(ResponseObject):
     @classmethod
     def call(cls, profile_id: str) -> List["Account"]:
         response: Response = http_requests.get(cls.endpoint.replace("{profile_id}", str(profile_id)), headers=constants.HEADERS)
-        return common.get_model_from_response(response, cls)  # type: ignore
+        accounts_list: List[Account] = common.get_model_from_response(response, cls)    # type: ignore
+
+        for account in accounts_list:
+            balances_list: List[Balance] = []
+            for balance in account.balances:
+                balances_list.append(Balance(**balance))
+            account.balances = balances_list
+
+        return accounts_list
 
 
 @dataclass
@@ -114,14 +134,14 @@ class ExchangeRate(ResponseObject):
     endpoint: str = constants.ENDPOINT_EXCHANGE_RATES
 
     @classmethod
-    def call(cls, source_currency: str = None, target_currency: str = None) -> List["Account"]:
+    def call(cls, source_currency: str = None, target_currency: str = None) -> "ExchangeRate":
 
         if source_currency is not None and target_currency is not None:
             response: Response = http_requests.get(cls.endpoint + f"?source={source_currency}&target={target_currency}", headers=constants.HEADERS)
         else:
             response = http_requests.get(cls.endpoint, headers=constants.HEADERS)
 
-        return common.get_model_from_response(response, cls)  # type: ignore
+        return common.get_model_from_response(response, cls)[0]  # type: ignore
 
 
 @dataclass
@@ -269,54 +289,64 @@ class Address:
 
 @dataclass
 class RecipientDetails:
-    email: None
-    abartn: None
-    accountType: None
-    bankgiroNumber: None
-    ifscCode: None
-    bsbCode: None
-    institutionNumber: None
-    transitNumber: None
-    phoneNumber: None
-    bankCode: None
-    russiaRegion: None
-    routingNumber: None
-    branchCode: None
-    cpf: None
-    cardNumber: None
-    idType: None
-    idNumber: None
-    idCountryIso3: None
-    idValidFrom: None
-    idValidTo: None
-    clabe: None
-    swiftCode: None
-    dateOfBirth: None
-    clearingNumber: None
-    bankName: None
-    branchName: None
-    businessNumber: None
-    province: None
-    city: None
-    rut: None
-    token: None
-    cnpj: None
-    payinReference: None
-    pspReference: None
-    orderId: None
-    idDocumentType: None
-    idDocumentNumber: None
-    targetProfile: None
-    taxId: None
-    iban: None
-    bic: None
-    IBAN: None
-    BIC: None
-    interacAccount: None
-    accountNumber: Optional[int] = None
-    sortCode: Optional[int] = None
+    accountHolderName: Optional[str] = None
+    sortCode: Optional[str] = None
+    abartn: Optional[str] = None
+    accountType: Optional[str] = None
+    bankgiroNumber: Optional[str] = None
+    ifscCode: Optional[str] = None
+    bsbCode: Optional[str] = None
+    institutionNumber: Optional[str] = None
+    transitNumber: Optional[str] = None
+    phoneNumber: Optional[str] = None
+    bankCode: Optional[str] = None
+    russiaRegion: Optional[str] = None
+    routingNumber: Optional[str] = None
+    branchCode: Optional[str] = None
+    cpf: Optional[str] = None
+    cardToken: Optional[str] = None
+    idType: Optional[str] = None
+    idNumber: Optional[str] = None
+    idCountryIso3: Optional[str] = None
+    idValidFrom: Optional[str] = None
+    idValidTo: Optional[str] = None
+    clabe: Optional[str] = None
+    dateOfBirth: Optional[str] = None
+    clearingNumber: Optional[str] = None
+    bankName: Optional[str] = None
+    branchName: Optional[str] = None
+    businessNumber: Optional[str] = None
+    province: Optional[str] = None
+    city: Optional[str] = None
+    rut: Optional[str] = None
+    token: Optional[str] = None
+    cnpj: Optional[str] = None
+    payinReference: Optional[str] = None
+    pspReference: Optional[str] = None
+    orderId: Optional[str] = None
+    idDocumentType: Optional[str] = None
+    idDocumentNumber: Optional[str] = None
+    targetProfile: Optional[int] = None
+    targetUserId: Optional[str] = None
+    taxId: Optional[str] = None
+    job: Optional[str] = None
+    nationality: Optional[str] = None
+    interacAccount: Optional[str] = None
+    bban: Optional[str] = None
+    town: Optional[str] = None
+    postCode: Optional[str] = None
+    language: Optional[str] = None
+    billerCode: Optional[str] = None
+    customerReferenceNumber: Optional[str] = None
+    IBAN: Optional[str] = None
+    iban: Optional[str] = None
     address: Optional[Address] = None
+    email: Optional[str] = None
     legalType: Optional[str] = None
+    accountNumber: Optional[str] = None
+    swiftCode: Optional[str] = None
+    bic: Optional[str] = None
+    BIC: Optional[str] = None
 
 
 @dataclass
@@ -337,7 +367,11 @@ class Recipient(ResponseObject):
     @classmethod
     def call(cls, profile_id: int) -> List["Recipient"]:
         response: Response = http_requests.get(cls.endpoint.replace("{profile_id}", str(profile_id)), headers=constants.HEADERS)
-        return common.get_model_from_response(response, cls)  # type: ignore
+        recipient_list: List[Recipient] = common.get_model_from_response(response, cls) # type: ignore
+        for recipient in recipient_list:
+            recipient.details = RecipientDetails(**recipient.details)
+
+        return recipient_list
 
 
 @dataclass

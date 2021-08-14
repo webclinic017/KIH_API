@@ -23,12 +23,6 @@ class InstrumentType(enum.Enum):
     INDEX: str = "IND"
 
 
-class Currency(enum.Enum):
-    USD: str = "USD"
-    NZD: str = "NZD"
-    SGD: str = "SGD"
-
-
 class OrderType(enum.Enum):
     MARKET: str = "MKT"
     LIMIT: str = "LMT"
@@ -242,7 +236,7 @@ class Position:
     market_price: Decimal
     market_value: Decimal
     instrument_type: InstrumentType
-    currency: Currency
+    currency: global_common.Currency
     account_id: str
 
     def __init__(self, description: str, position_size: float, market_price: float, market_value: float,
@@ -253,7 +247,7 @@ class Position:
         self.market_value = Decimal(str(market_value))
         self.account_id = account_id
         self.instrument_type = global_common.get_enum_from_value(instrument_type, InstrumentType)
-        self.currency = global_common.get_enum_from_value(currency, Currency)
+        self.currency = global_common.get_enum_from_value(currency, global_common.Currency)
 
     @classmethod
     def get_all_by_account_id(cls, account_id: str) -> List["Position"]:
@@ -457,7 +451,7 @@ class UnfilledOrder:
     exchange: StockExchanges
     contract_id: int
     order_id: str
-    currency: Currency
+    currency: global_common.Currency
     unfilled_quantity: Decimal
     filled_quantity: Decimal
     order_description: str
@@ -476,7 +470,7 @@ class UnfilledOrder:
         self.exchange = global_common.get_enum_from_value(live_order.exchange, StockExchanges)
         self.contract_id = live_order.conid
         self.order_id = live_order.orderId
-        self.currency = global_common.get_enum_from_value(live_order.cashCcy, Currency)
+        self.currency = global_common.get_enum_from_value(live_order.cashCcy, global_common.Currency)
         self.unfilled_quantity = Decimal(str(live_order.remainingQuantity))
         self.filled_quantity = Decimal(str(live_order.filledQuantity))
         self.order_description = live_order.orderDesc
@@ -528,13 +522,13 @@ class UnfilledOrder:
 @dataclass
 class AccountInformation:
     available_funds: Decimal
-    currency: Currency
+    currency: global_common.Currency
     updated_at: datetime.datetime
     net_liquidity: Decimal
 
     def __init__(self, account_information: ibkr_models.AccountInformation):
         self.available_funds = Decimal(str(account_information.totalcashvalue.amount))
-        self.currency = global_common.get_enum_from_value(account_information.fullavailablefunds.currency, Currency)
+        self.currency = global_common.get_enum_from_value(account_information.fullavailablefunds.currency, global_common.Currency)
         self.updated_at = datetime.datetime.utcfromtimestamp(int(account_information.fullavailablefunds.timestamp / 1000))
         self.net_liquidity = Decimal(str(account_information.netliquidation.amount))
 
@@ -553,7 +547,7 @@ class PortfolioPosition:
     position: Decimal
     market_price: Decimal
     market_value: Decimal
-    currency: Currency
+    currency: global_common.Currency
     instrument_type: InstrumentType
 
     def __init__(self, portfolio_position: ibkr_models.PortfolioPosition):
@@ -564,7 +558,7 @@ class PortfolioPosition:
         self.contract_id = portfolio_position.conid
         self.market_price = Decimal(str(portfolio_position.mktPrice))
         self.market_value = Decimal(str(portfolio_position.mktValue))
-        self.currency = global_common.get_enum_from_value(portfolio_position.currency, Currency)
+        self.currency = global_common.get_enum_from_value(portfolio_position.currency, global_common.Currency)
         self.instrument_type = global_common.get_enum_from_value(portfolio_position.assetClass, InstrumentType)
         self.position = Decimal(str(portfolio_position.position))
 

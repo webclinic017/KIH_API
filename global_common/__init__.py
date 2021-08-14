@@ -8,6 +8,20 @@ from typing import Any, Dict, Type, Optional, Callable, List, Union
 from logger import logger
 
 
+class Currency(enum.Enum):
+    USD: str = "USD"
+    EUR: str = "EUR"
+    GBP: str = "GBP"
+    AUD: str = "AUD"
+    NZD: str = "NZD"
+    SGD: str = "SGD"
+    LKR: str = "LKR"
+
+
+class EnumNotFoundException(Exception):
+    pass
+
+
 def convert_string_to_dict(string: str) -> Dict[Any, Any]:
     parameters_list = string.split(",")
 
@@ -27,7 +41,7 @@ def get_enum_from_value(value: Any, enum: Type[enum.Enum]) -> Optional[Any]:
         if enum_value.value == value:
             return enum_value
 
-    return None
+    raise EnumNotFoundException()
 
 
 def get_formatted_string_from_decimal(number: Decimal, decimal_places: int = 2) -> str:
