@@ -20,7 +20,7 @@ def send_email(to_address_list: List[str], email_subject: str, email_content: st
     start_time = time.time()
     smtp_server = smtplib.SMTP("smtp.office365.com", port=587)
     smtp_server.starttls()
-    logger.debug(constants.execution_type__Email_Server + "|" + "Connection Establishment" + "|" + "" + "|" + str(start_time))
+    logger.debug(constants.execution_type__Email_Server + "|" + "Connection Establishment" + "|" + "" + "|" + start_time)
 
     #   Authenticating
     start_time = time.time()
@@ -30,7 +30,7 @@ def send_email(to_address_list: List[str], email_subject: str, email_content: st
     except Exception:
         traceback.print_exc()
 
-    logger.debug(constants.execution_type__Email_Server + "|" + "Authentication" + "|" + "" + "|" + str(start_time))
+    logger.debug(constants.execution_type__Email_Server + "|" + "Authentication" + "|" + "" + "|" + start_time)
 
     #   Sending email
     logger.info("Sending email to " + str(len(to_address_list)) + " recipients")
@@ -43,7 +43,7 @@ def send_email(to_address_list: List[str], email_subject: str, email_content: st
 
     start_time = time.time()
     smtp_server.send_message(from_addr=constants.email_account, to_addrs=to_address_list, msg=email)
-    logger.debug(constants.execution_type__Email_Server + "|" + "Sending Email" + "|" + str(email) + "|" + str(start_time))
+    logger.debug(constants.execution_type__Email_Server + "|" + "Sending Email" + "|" + str(email) + "|" + start_time)
 
     #   Disconnecting from the SMTP server
     smtp_server.quit()

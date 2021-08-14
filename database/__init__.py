@@ -95,7 +95,7 @@ def select(query: str) -> Any:
 
     start_time = time.time()
     database_cursor.execute(query)
-    logger.debug(database.constants.execution_type__Database + "|" + "SELECT" + "|" + query + "|" + str(start_time))
+    logger.debug(database.constants.execution_type__Database + "|" + "SELECT" + "|" + query + "|" + start_time)
 
     data = database_cursor.fetchall()
     return data

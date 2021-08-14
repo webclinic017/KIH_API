@@ -65,7 +65,7 @@ def request(url: str, parameters: Optional[Dict[str, Any]], method_type: MethodT
             raise ServerErrorException(response.text)
 
     time_taken: int = int((time.time() - start_time) * 1000)
-    logger.debug(constants.EXECUTION_TYPE_API_Call + "|" + method_type.value + "|" + response.url,
+    logger.performance(constants.EXECUTION_TYPE_API_Call, method_type.value, response.url,
                        start_time, url)
     __log_webservice(url, parameters, response, time_taken)
 
