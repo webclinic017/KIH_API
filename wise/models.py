@@ -3,9 +3,12 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import List, Optional
 
+import communication.telegram
 import global_common
+from logger import logger
 import wise_models
-from wise.exceptions import MultipleUserProfilesWithSameTypeException, MultipleRecipientsWithSameAccountNumber
+from http_requests import ClientErrorException
+from wise.exceptions import MultipleUserProfilesWithSameTypeException, MultipleRecipientsWithSameAccountNumberException, TransferringMoneyToNonSelfOwnedAccountsException
 
 
 class ProfileTypes(enum.Enum):
@@ -129,7 +132,7 @@ class Recipient:
                 if return_recipient is None:
                     return_recipient = recipient
                 else:
-                    raise MultipleRecipientsWithSameAccountNumber()
+                    raise MultipleRecipientsWithSameAccountNumberException()
 
         return return_recipient
 
@@ -160,11 +163,36 @@ class Transfer:
         self.error_code = wise_fund.errorCode
 
     @classmethod
-    def execute(cls, amount: Decimal, from_currency: global_common.Currency, to_currency: global_common.Currency, recipient_account_number: str, reference: str, profile_type: ProfileTypes) -> "Transfer":
+    def execute(cls, receiving_amount: Decimal, from_currency: global_common.Currency, to_currency: global_common.Currency, recipient_account_number: str, reference: str, profile_type: ProfileTypes) -> "Transfer":
         recipient: Recipient = Recipient.get_by_account_number_and_profile_type(recipient_account_number, profile_type)
-        user_profile: UserProfile = UserProfile.get_by_profile_type(profile_type)
-        wise_quote: wise_models.Quote = wise_models.Quote.call(user_profile.id, from_currency.value, to_currency.value, float(amount), recipient.account_id)
-        wise_transfer: wise_models.Transfer = wise_models.Transfer.call(recipient.account_id, wise_quote.id, reference)
-        wise_fund: wise_models.Fund = wise_models.Fund.call(user_profile.id, wise_transfer.id)
-        return Transfer(user_profile, recipient, wise_transfer, wise_fund)
+        
+        if not recipient.is_self_owned:
+            raise TransferringMoneyToNonSelfOwnedAccountsException()
+
+        try:
+            user_profile: UserProfile = UserProfile.get_by_profile_type(profile_type)
+            wise_quote: wise_models.Quote = wise_models.Quote.call(user_profile.id, from_currency.value, to_currency.value, float(receiving_amount), recipient.account_id)
+            wise_transfer: wise_models.Transfer = wise_models.Transfer.call(recipient.account_id, wise_quote.id, reference)
+            wise_fund: wise_models.Fund = wise_models.Fund.call(user_profile.id, wise_transfer.id)
+            transfer: Transfer = Transfer(user_profile, recipient, wise_transfer, wise_fund)
+
+            if transfer.is_successful:
+                communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                                    f"<u><b>Money transferred</b></u>"
+                                                    f"\n\nAmount: <i>{to_currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount)}</i>"
+                                                    f"\nTo: <i>{recipient.name}</i>"
+                                                    f"\nReference: <i>{reference}</i>", True)
+            else:
+                raise ClientErrorException(transfer.error_message)
+
+            return transfer
+
+        except ClientErrorException as e:
+            logger.error(str(e))
+            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                                f"<u><b>ERROR: Money transfer failed</b></u>"
+                                                f"\n\nAmount: <i>{to_currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount)}</i>"
+                                                f"\nTo: <i>{recipient.name}</i>"
+                                                f"\nReason: <i>{str(e)}</i>"
+                                                f"\nReference: <i>{reference}</i>", True)
 

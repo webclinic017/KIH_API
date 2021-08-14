@@ -1,5 +1,10 @@
 class MultipleUserProfilesWithSameTypeException(Exception):
     pass
 
-class MultipleRecipientsWithSameAccountNumber(Exception):
+
+class MultipleRecipientsWithSameAccountNumberException(Exception):
+    pass
+
+
+class TransferringMoneyToNonSelfOwnedAccountsException(Exception):
     pass
