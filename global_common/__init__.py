@@ -1,9 +1,10 @@
 import enum
+import inspect
 import os
 import subprocess
 import threading
 from decimal import Decimal
-from typing import Any, Dict, Type, Optional, Callable, List, Union
+from typing import Any, Dict, Type, Optional, List, Union, Callable
 
 from logger import logger
 
@@ -48,9 +49,14 @@ def get_formatted_string_from_decimal(number: Decimal, decimal_places: int = 2) 
     return f'{number.quantize(Decimal(10) ** -decimal_places):,}'
 
 
-def run_as_separate_thread(target: Callable, arguments: tuple = ()) -> None:
-    return_function: threading.Thread = threading.Thread(target=target, args=arguments)
-    return_function.start()
+def threaded(func: Callable) -> Callable:
+    def wrapper(*args: Any, **kwargs: Any) -> threading.Thread:
+        thread: threading.Thread = threading.Thread(target=func, args=args, kwargs=kwargs)
+        thread.start()
+        logger.debug(f"Thread started for function: {os.path.abspath(inspect.getfile(func))}")
+        return thread
+
+    return wrapper
 
 
 def run_command(command_list: List[str]) -> Union[List[str], None]:
