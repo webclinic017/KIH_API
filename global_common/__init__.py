@@ -53,7 +53,7 @@ def threaded(func: Callable) -> Callable:
     def wrapper(*args: Any, **kwargs: Any) -> threading.Thread:
         thread: threading.Thread = threading.Thread(target=func, args=args, kwargs=kwargs)
         thread.start()
-        logger.debug(f"Thread started for function: {os.path.abspath(inspect.getfile(func))}")
+        logger.debug(f"Thread started for function: {os.path.abspath(inspect.getfile(func))} | {func.__name__}")
         return thread
 
     return wrapper
