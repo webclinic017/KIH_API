@@ -1,20 +1,19 @@
 import datetime
 import enum
 import uuid
-import json
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import List
 
 import pytz
 
-import global_common
 import communication.telegram
+import global_common
 import ibkr
 from ibkr import ibkr_models
 from ibkr.exceptions import StockNotFoundException, StockDataNotAvailableException
 from ibkr.ibkr_models import StockSearchResults, Contract, MarketDataSnapshot, PortfolioPositions, PortfolioAccounts, \
-    MarketDataHistory, LiveOrders, LiveOrder, PlaceOrderReply
+    MarketDataHistory, LiveOrders, LiveOrder
 
 
 class InstrumentType(enum.Enum):
@@ -602,8 +601,8 @@ class PortfolioPosition:
 
         if not is_all_orders_placed:
             communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
-                                                    f"<u><b>ERROR: All positions failed to close</b></u>"
-                                                    f"\n\nAccount ID: <i>{account_id}</i>\n", True)
+                                                f"<u><b>ERROR: All positions failed to close</b></u>"
+                                                f"\n\nAccount ID: <i>{account_id}</i>\n", True)
         else:
             communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
                                                 f"<i>Orders placed to close all positions</i>"

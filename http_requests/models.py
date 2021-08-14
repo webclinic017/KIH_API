@@ -16,4 +16,3 @@ class ResponseObject:
     response: Response
     is_successful: bool
     endpoint: str
-

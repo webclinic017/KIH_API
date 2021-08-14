@@ -5,7 +5,7 @@ import threading
 from decimal import Decimal
 from typing import Any, Dict, Type, Optional, Callable, List, Union
 
-import logger
+from logger import logger
 
 
 def convert_string_to_dict(string: str) -> Dict[Any, Any]:

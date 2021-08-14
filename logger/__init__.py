@@ -8,21 +8,6 @@ logger = python_logging.getLogger()
 python_logging.basicConfig(level=python_logging.DEBUG, format="%(asctime)s | %(levelname)s | %(pathname)s - %(lineno)d\n%(message)s\n")
 
 
-def debug(message: str, **kwargs) -> None:
-    logger.debug(msg=str(message), **kwargs)
-    __insert_into_log_table(message, "DEBUG")
-
-
-def info(message: str, **kwargs) -> None:
-    logger.info(msg=str(message), **kwargs)
-    __insert_into_log_table(message, "INFO")
-
-
-def error(message: str, **kwargs) -> None:
-    logger.error(msg=str(message), **kwargs)
-    __insert_into_log_table(message, "ERROR")
-
-
 def performance(execution_type: str, execution_subtype: str, execution_command: str, start_time: float, description: str = None) -> None:
     time_taken: int = int((time.time() - start_time) * 1000)
 
@@ -38,7 +23,7 @@ def performance(execution_type: str, execution_subtype: str, execution_command: 
     if description is not None:
         log_message = log_message + " | " + description
 
-    debug(log_message)
+    logger.debug(log_message)
 
 
 def __insert_into_log_table(message: str, logger_level: str) -> None:

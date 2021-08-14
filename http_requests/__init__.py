@@ -6,10 +6,10 @@ import requests
 import urllib3
 from requests import Response
 
-import logger
 import database.constants
 import http_requests.constants as constants
 from http_requests.models import MethodType
+from logger import logger
 
 is_ssl_certificate_verification_used: bool = True
 urllib3.disable_warnings()

@@ -1,6 +1,6 @@
 import communication.telegram.constants as constants
 import http_requests
-import logger
+from logger import logger
 
 url = constants.telegram_url.replace("<token>", constants.telegram_bot_token) + constants.telegram_method_send_message
 

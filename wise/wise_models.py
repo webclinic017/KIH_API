@@ -243,7 +243,6 @@ class Quote(ResponseObject):
     funding: Optional[str] = None
     endpoint: str = constants.ENDPOINT_QUOTE
 
-
     @classmethod
     def call(cls, profile_id: int, source_currency: str, target_currency: str, target_amount: float, target_account_id: int) -> "Quote":
         parameters: Dict[str, Any] = {

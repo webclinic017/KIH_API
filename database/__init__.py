@@ -2,7 +2,7 @@ import time
 from typing import Dict, Any
 
 import database.constants
-import logger
+from logger import logger
 
 start_time = time.time()
 # database_connection = mysql.connector.connect(host=database.constants.database_host_name,
@@ -89,7 +89,7 @@ def __execute_query(query: str) -> None:
 
 
 def select(query: str) -> Any:
-    database_cursor = database_connection.cursor(buffered=True, dictionary=True)        # type: ignore
+    database_cursor = database_connection.cursor(buffered=True, dictionary=True)  # type: ignore
 
     # logger.debug("Executing query: " + query)
 

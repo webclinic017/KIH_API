@@ -2,10 +2,10 @@ import datetime
 import time
 
 import http_requests
-import logger
 from ibkr import constants, common
 from ibkr.exceptions import KeepAliveFailedException, AuthenticationFailedException
 from ibkr.ibkr_models import Authentication, KeepAlive, ReAuthentication, PortfolioAccounts, SelectAccount
+from logger import logger
 
 http_requests.is_ssl_certificate_verification_used = False
 
@@ -24,7 +24,8 @@ def keep_alive() -> None:
 def authenticate() -> bool:
     return ReAuthentication.call().is_successful
 
+
 try:
     SelectAccount.execute()
-except Exception:
-    pass
+except Exception as e:
+    logger.error(str(e))

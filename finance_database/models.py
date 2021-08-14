@@ -1,6 +1,6 @@
 import os
 from decimal import Decimal
-from typing import Dict, Any, Optional, Type
+from typing import Dict, Any, Optional
 
 import pandas
 from numpy import ndarray

@@ -1,12 +1,12 @@
+import smtplib
+import time
 import traceback
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import smtplib
-import time
 from typing import List
 
-import logger
 import communication.email.constants as constants
+from logger import logger
 
 
 def send_email(to_address_list: List[str], email_subject: str, email_content: str) -> None:

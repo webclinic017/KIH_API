@@ -23,6 +23,6 @@ def get_model_from_response(response: Response, data_class: Callable) -> Union[L
         data_list: List[UserProfiles] = []
         for data in response.json():
             data_list.append(data_class(**get_response_object_data_from_response(response, data)))
-        return data_list    # type: ignore
+        return data_list  # type: ignore
 
     return None
