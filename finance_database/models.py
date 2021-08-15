@@ -40,16 +40,15 @@ class ExcelData:
     def get_data_set(self, query_string: str) -> Dict[str, Any]:
         header: Data = self.find(query_string)
         data_set: Dict[str, Any] = {}
-
-        value: Any = ""
-        row_number: int = 1
-        while value is not None and row_number <= max(self.columns_size, self.row_size - 1):
-            key: str = self.get(row_number + header.row, header.column).data
-            value = self.get(row_number + header.row, header.column + 1).data
-            if key is not None:
-                data_set[key] = value
-            row_number = row_number + 1
-
+        for row_number in range(1, max(self.columns_size, self.row_size)):
+            try:
+                key: str = self.get(row_number + header.row, header.column).data
+                if key is not None:
+                    data_set[key] = self.get(row_number + header.row, header.column + 1).data
+                else:
+                    raise KeyError
+            except KeyError:
+                return data_set
         return data_set
 
     def get_data_sub_set(self, query_string: str, number_of_datasets: int) -> "ExcelData":
