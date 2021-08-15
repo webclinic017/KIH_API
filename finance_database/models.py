@@ -16,6 +16,7 @@ class ExcelData:
     rows_start_index: int
     rows_end_index: int
     columns_size: int
+    row_size: int
 
     def __init__(self, excel_data: DataFrame):
         self.excel_data = excel_data
@@ -23,6 +24,7 @@ class ExcelData:
         self.rows_start_index = self.excel_data.index.start
         self.rows_end_index = self.excel_data.index.stop
         self.columns_size = self.excel_data.columns.size
+        self.row_size = self.rows_end_index - self.rows_start_index
 
     def get(self, row: int, columns: int) -> "Data":
         return Data(self.data[row][columns], row, columns)
@@ -41,7 +43,7 @@ class ExcelData:
 
         value: Any = ""
         row_number: int = 1
-        while value is not None and row_number <= self.columns_size:
+        while value is not None and row_number <= max(self.columns_size, self.row_size - 1):
             key: str = self.get(row_number + header.row, header.column).data
             value = self.get(row_number + header.row, header.column + 1).data
             if key is not None:
@@ -68,8 +70,8 @@ class ExcelData:
 
         return ExcelData(self.excel_data.iloc[header.row:end_row_number, header.column:end_column_number])
 
-    @classmethod
-    def read_excel(cls: str, excel_file_path: str, sheet_name: str) -> "ExcelData":  # type: ignore
+    @staticmethod
+    def read_excel(excel_file_path: str, sheet_name: str) -> "ExcelData":
         temp_file_path: str = common.get_temp_file_path(excel_file_path)
         excel_data: ExcelData = ExcelData(pandas.read_excel(temp_file_path, sheet_name))
         os.remove(temp_file_path)
@@ -172,15 +174,28 @@ class FixedExpenses:
         self.wants_expenses = WantsExpenses(fixed_expenses_data.get_data_set("Wants"))
 
 
+class Settings:
+    settings: Dict[str, Any]
+
+    def __init__(self, excel_file_path: str):
+        excel_data: ExcelData = ExcelData.read_excel(excel_file_path, "Settings")
+        self.settings = excel_data.get_data_set("Settings")
+
+    def get(self, key: str) -> Any:
+        return self.settings.get(key)
+
+
 class Transfer:
     bank_account: str
     description: str
     amount: Decimal
+    account_number: str
 
-    def __init__(self, bank_account: str, description: str, amount: Decimal):
+    def __init__(self, bank_account: str, description: str, amount: Decimal, account_number: str):
         self.bank_account = bank_account
         self.description = description
         self.amount = amount
+        self.account_number = account_number.replace("-", "")
 
 
 class Transfers:
@@ -189,7 +204,7 @@ class Transfers:
     wants: Transfer
     savings: Transfer
 
-    def __init__(self, excel_data: ExcelData):
+    def __init__(self, excel_data: ExcelData, settings: Settings):
         data: Dict[str, Any] = excel_data.get_data_set("Transfers")
 
         item_number: int = 1
@@ -197,13 +212,13 @@ class Transfers:
             bank_account: str = transfer[0]
             amount: Decimal = transfer[1]
             if item_number == 1:
-                self.finance_hub = Transfer(bank_account, "Finance Hub", amount)
+                self.finance_hub = Transfer(bank_account, "Finance Hub", amount, settings.get(bank_account + " Account Number"))
             elif item_number == 2:
-                self.needs = Transfer(bank_account, "Needs", amount)
+                self.needs = Transfer(bank_account, "Needs", amount, settings.get(bank_account + " Account Number"))
             elif item_number == 3:
-                self.wants = Transfer(bank_account, "Wants", amount)
+                self.wants = Transfer(bank_account, "Wants", amount, settings.get(bank_account + " Account Number"))
             elif item_number == 4:
-                self.savings = Transfer(bank_account, "Savings", amount)
+                self.savings = Transfer(bank_account, "Savings", amount, settings.get(bank_account + " Account Number"))
             item_number = item_number + 1
 
         assert Summary(
