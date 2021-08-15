@@ -24,7 +24,7 @@ class UserProfileDetails:
     occupation: Optional[str] = None
     firstName: Optional[str] = None
     lastName: Optional[str] = None
-    dateOfBirth: Optional[datetime] = None
+    dateOfBirth: Optional[str] = None
     phoneNumber: Optional[str] = None
     primaryAddress: Optional[int] = None
     name: Optional[str] = None
@@ -112,7 +112,7 @@ class Account(ResponseObject):
     endpoint: str = constants.ENDPOINT_ACCOUNTS
 
     @classmethod
-    def call(cls, profile_id: str) -> List["Account"]:
+    def call(cls, profile_id: int) -> List["Account"]:
         response: Response = http_requests.get(cls.endpoint.replace("{profile_id}", str(profile_id)), headers=constants.HEADERS)
         accounts_list: List[Account] = common.get_model_from_response(response, cls)  # type: ignore
 
@@ -242,7 +242,7 @@ class Quote(ResponseObject):
     transferFlowConfig: Optional[TransferFlowConfig] = None
     rateTimestamp: Optional[datetime] = None
     clientId: Optional[str] = None
-    id: Optional[UUID] = None
+    id: Optional[str] = None
     type: Optional[str] = None
     status: Optional[str] = None
     profile: Optional[int] = None

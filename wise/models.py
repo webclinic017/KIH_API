@@ -5,9 +5,10 @@ from typing import List, Optional
 
 import communication.telegram
 import global_common
-import wise_models
+from finance_database.exceptions import InsufficientFundsException, BalanceForCurrencyNotFoundException
 from http_requests import ClientErrorException
 from logger import logger
+from wise import wise_models
 from wise.exceptions import MultipleUserProfilesWithSameTypeException, MultipleRecipientsWithSameAccountNumberException, TransferringMoneyToNonSelfOwnedAccountsException
 
 
@@ -57,6 +58,12 @@ class AccountBalance:
         self.balance = Decimal(str(wise_balance.amount.value))
         self.reserved_amount = Decimal(str(wise_balance.reservedAmount.value))
 
+    @classmethod
+    def get_by_currency_and_profile_type(cls, currency: global_common.Currency, profile_type: ProfileTypes) -> "AccountBalance":
+        for balance in Account.get_by_profile_type(profile_type)[0].balances_list:
+            if balance.currency == currency:
+                return balance
+        raise BalanceForCurrencyNotFoundException()
 
 @dataclass
 class Account:
@@ -170,6 +177,14 @@ class Transfer:
             raise TransferringMoneyToNonSelfOwnedAccountsException()
 
         try:
+            if from_currency == to_currency:
+                account_balance: AccountBalance = AccountBalance.get_by_currency_and_profile_type(from_currency, profile_type)
+                if account_balance.balance < receiving_amount:
+                    raise InsufficientFundsException(f"Insufficient funds"
+                                                     f"\nRequired amount: {from_currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount)}"
+                                                     f"\nAccount Balance: {from_currency.value} {global_common.get_formatted_string_from_decimal(account_balance.balance)}"
+                                                     f"\nShort of: {from_currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount - account_balance.balance)}")
+
             user_profile: UserProfile = UserProfile.get_by_profile_type(profile_type)
             wise_quote: wise_models.Quote = wise_models.Quote.call(user_profile.id, from_currency.value, to_currency.value, float(receiving_amount), recipient.account_id)
             wise_transfer: wise_models.Transfer = wise_models.Transfer.call(recipient.account_id, wise_quote.id, reference)
@@ -195,5 +210,14 @@ class Transfer:
                                                 f"\nTo: <i>{recipient.name}</i>"
                                                 f"\nReason: <i>{str(e)}</i>"
                                                 f"\nReference: <i>{reference}</i>", True)
+        except InsufficientFundsException as e:
+            logger.error(str(e))
+            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                                f"<u><b>ERROR: Money transfer failed</b></u>"
+                                                f"\n\nAmount: <i>{to_currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount)}</i>"
+                                                f"\nTo: <i>{recipient.name}</i>"
+                                                f"\nReason: <i>{str(e)}</i>"
+                                                f"\nReference: <i>{reference}</i>", True)
+            raise InsufficientFundsException(str(e))
 
-            return None
+        return None

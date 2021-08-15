@@ -5,11 +5,16 @@ import tempfile
 
 from dateutil.relativedelta import relativedelta
 
+from finance_database.exceptions import ExcelFileOpenedByAnotherApplication
+
 
 def get_temp_file_path(file_path: str) -> str:
     temp_dir = tempfile.gettempdir()
     temp_file_path = os.path.join(temp_dir, 'temp_file_name')
-    shutil.copy(file_path, temp_file_path)
+    try:
+        shutil.copy(file_path, temp_file_path)
+    except PermissionError:
+        raise ExcelFileOpenedByAnotherApplication()
     return temp_file_path
 
 

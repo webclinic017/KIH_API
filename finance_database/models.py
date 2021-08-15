@@ -194,7 +194,7 @@ class Transfer:
         self.bank_account = bank_account
         self.description = description
         self.amount = amount
-        self.account_number = account_number.replace("-", "")
+        self.account_number = account_number.replace("-", "").strip()
 
 
 class Transfers:
