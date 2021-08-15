@@ -119,13 +119,8 @@ def job(job_name: str) -> Callable:
                 func(*args, **kwargs)
                 logger.debug(f"Job ended: {job_name}")
                 communication.telegram.send_message(communication.telegram.constants.telegram_channel_development_username, f"Job ended: <i>{job_name}</i>", True)
-            except CustomException as e:
-                message = f"<b><u>ERROR</u></b>\n\nJob Name: <i>{job_name}</i>\nError Type: <i>Known Exception</i>"
-                if str(e) != "":
-                    message = message + f"\nError Message: <i>{str(e).replace('<', '').replace('>', '')}</i>"
-                communication.telegram.send_message(communication.telegram.constants.telegram_channel_username, message, True)
             except Exception as e:
-                message = f"<b><u>ERROR</u></b>\n\nJob Name: <i>{job_name}</i>\nError Type: <i>Unknown Exception</i>"
+                message = f"<b><u>ERROR</u></b>\n\nJob Name: <i>{job_name}</i>\nError Type: <i>{type(e).__name__}</i>"
                 if str(e) != "":
                     message = message + f"\nError Message: <i>{str(e).replace('<', '').replace('>', '')}</i>"
                 communication.telegram.send_message(communication.telegram.constants.telegram_channel_username, message, True)
