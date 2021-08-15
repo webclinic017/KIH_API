@@ -1,14 +1,17 @@
-class DataNotFoundException(Exception):
+from global_common import CustomException
+
+
+class DataNotFoundException(CustomException):
     pass
 
 
-class ExcelFileOpenedByAnotherApplication(Exception):
+class ExcelFileOpenedByAnotherApplication(CustomException):
     pass
 
 
-class BalanceForCurrencyNotFoundException(Exception):
+class BalanceForCurrencyNotFoundException(CustomException):
     pass
 
 
-class InsufficientFundsException(Exception):
+class InsufficientFundsException(CustomException):
     pass

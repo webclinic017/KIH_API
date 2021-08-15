@@ -216,8 +216,8 @@ class Transfer:
                                                 f"<u><b>ERROR: Money transfer failed</b></u>"
                                                 f"\n\nAmount: <i>{to_currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount)}</i>"
                                                 f"\nTo: <i>{recipient.name}</i>"
-                                                f"\nReason: <i>{str(e)}</i>"
-                                                f"\nReference: <i>{reference}</i>", True)
+                                                f"\nReference: <i>{reference}</i>"
+                                                f"\n\nReason: <i>{str(e)}</i>", True)
             raise InsufficientFundsException(str(e))
 
         return None

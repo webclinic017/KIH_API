@@ -19,7 +19,11 @@ class Currency(enum.Enum):
     LKR: str = "LKR"
 
 
-class EnumNotFoundException(Exception):
+class CustomException(Exception):
+    pass
+
+
+class EnumNotFoundException(CustomException):
     pass
 
 
@@ -103,3 +107,29 @@ def update_code_base(project_directory: str, main_branch_name: str = "main") -> 
 
     if "requirements.txt" in os.listdir(project_directory):
         run_command([f"pip install -r requirements.txt"])
+
+
+def job(job_name: str) -> Callable:
+    def decorator(func: Callable) -> Callable:
+        def wrapper(*args: Any, **kwargs: Any) -> None:
+            import communication.telegram
+            try:
+                communication.telegram.send_message(communication.telegram.constants.telegram_channel_development_username, f"Running job: <i>{job_name}</i>", True)
+                logger.debug(f"Running job: {job_name}")
+                func(*args, **kwargs)
+                logger.debug(f"Job ended: {job_name}")
+                communication.telegram.send_message(communication.telegram.constants.telegram_channel_development_username, f"Job ended: <i>{job_name}</i>", True)
+            except CustomException as e:
+                message = f"<b><u>ERROR</u></b>\n\nJob Name: <i>{job_name}</i>\nError Type: <i>Known Exception</i>"
+                if str(e) != "":
+                    message = message + f"\nError Message: <i>{str(e).replace('<', '').replace('>', '')}</i>"
+                communication.telegram.send_message(communication.telegram.constants.telegram_channel_username, message, True)
+            except Exception as e:
+                message = f"<b><u>ERROR</u></b>\n\nJob Name: <i>{job_name}</i>\nError Type: <i>Unknown Exception</i>"
+                if str(e) != "":
+                    message = message + f"\nError Message: <i>{str(e).replace('<', '').replace('>', '')}</i>"
+                communication.telegram.send_message(communication.telegram.constants.telegram_channel_username, message, True)
+
+        return wrapper
+
+    return decorator

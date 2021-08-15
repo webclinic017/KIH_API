@@ -1,22 +1,25 @@
-class KeepAliveFailedException(Exception):
+from global_common import CustomException
+
+
+class KeepAliveFailedException(CustomException):
     pass
 
 
-class AuthenticationFailedException(Exception):
+class AuthenticationFailedException(CustomException):
     pass
 
 
-class StockNotFoundException(Exception):
+class StockNotFoundException(CustomException):
     pass
 
 
-class MarketDataSnapshotNotAvailableException(Exception):
+class MarketDataSnapshotNotAvailableException(CustomException):
     pass
 
 
-class MarketOrderOutsideRTHException(Exception):
+class MarketOrderOutsideRTHException(CustomException):
     pass
 
 
-class StockDataNotAvailableException(Exception):
+class StockDataNotAvailableException(CustomException):
     pass

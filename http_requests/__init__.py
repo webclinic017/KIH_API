@@ -8,6 +8,7 @@ from requests import Response
 
 import database.constants
 import http_requests.constants as constants
+from global_common import CustomException
 from http_requests.models import MethodType
 from logger import logger
 
@@ -15,11 +16,11 @@ is_ssl_certificate_verification_used: bool = True
 urllib3.disable_warnings()
 
 
-class ServerErrorException(Exception):
+class ServerErrorException(CustomException):
     pass
 
 
-class ClientErrorException(Exception):
+class ClientErrorException(CustomException):
     pass
 
 

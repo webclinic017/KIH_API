@@ -1,10 +1,13 @@
-class MultipleUserProfilesWithSameTypeException(Exception):
+from global_common import CustomException
+
+
+class MultipleUserProfilesWithSameTypeException(CustomException):
     pass
 
 
-class MultipleRecipientsWithSameAccountNumberException(Exception):
+class MultipleRecipientsWithSameAccountNumberException(CustomException):
     pass
 
 
-class TransferringMoneyToNonSelfOwnedAccountsException(Exception):
+class TransferringMoneyToNonSelfOwnedAccountsException(CustomException):
     pass
