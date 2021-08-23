@@ -3,10 +3,11 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import List
+from typing import List, Union
 
 import alpaca_trade_api.entity
 import dateutil.parser
+from alpaca_trade_api.rest import APIError
 
 import communication.telegram
 import global_common
@@ -110,14 +111,14 @@ class Position:
         self.asset_id = alpaca_position._raw["asset_id"]
         self.symbol = alpaca_position._raw["symbol"]
         self.exchange = alpaca_position._raw["exchange"]
-        self.average_entry_price = Decimal(str(alpaca_position._raw["average_entry_price"]))
-        self.quantity = Decimal(str(alpaca_position._raw["quantity"]))
+        self.average_entry_price = Decimal(str(alpaca_position._raw["avg_entry_price"]))
+        self.quantity = Decimal(str(alpaca_position._raw["qty"]))
         self.market_value = Decimal(str(alpaca_position._raw["market_value"]))
         self.cost_basis = Decimal(str(alpaca_position._raw["cost_basis"]))
         self.current_price = Decimal(str(alpaca_position._raw["current_price"]))
-        self.change_in_percentage = Decimal(str(alpaca_position._raw["change_in_percentage"]))
-        self.unrealized_profit_loss = Decimal(str(alpaca_position._raw["unrealized_profit_loss"]))
-        self.unrealized_profit_loss_in_percentage = Decimal(str(alpaca_position._raw["unrealized_profit_loss_in_percentage"]))
+        self.change_in_percentage = Decimal(str(alpaca_position._raw["change_today"]))
+        self.unrealized_profit_loss = Decimal(str(alpaca_position._raw["unrealized_pl"]))
+        self.unrealized_profit_loss_in_percentage = Decimal(str(alpaca_position._raw["unrealized_plpc"]))
 
     @staticmethod
     def call() -> List["Position"]:
@@ -129,23 +130,39 @@ class Position:
 
     @staticmethod
     def get_by_symbol(symbol: str) -> "Position":
-        alpaca_position: alpaca_trade_api.entity.Position = alpaca_api.get_position(symbol)
+        try:
+            alpaca_position: alpaca_trade_api.entity.Position = alpaca_api.get_position(symbol)
+        except APIError as e:
+            if str(e) == "position does not exist":
+                return None
+            else:
+                raise APIError(e)
+
         return Position(alpaca_position)
 
     @staticmethod
-    def close_all_by_symbol(symbol: str) -> List["Position"]:
-        quantity: Decimal = Position.get_by_symbol(symbol).quantity
+    def close_all_by_symbol(symbol: str) -> Union["Order", None]:
+        position: Position = Position.get_by_symbol(symbol)
+
+        if position is not None:
+            quantity: Decimal = position.quantity
+        else:
+            quantity = Decimal("0")
 
         communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
                                             f"<u><b>Closing whole position</b></u>"
                                             f"\n\nSymbol: <i>{symbol}</i>"
                                             f"\nQuantity: <i>{str(quantity)}</i>", True)
 
-        alpaca_positions: List[alpaca_trade_api.entity.Position] = alpaca_api.close_position(symbol, int(quantity))
-        positions_list: List[Position] = []
-        for alpaca_position in alpaca_positions:
-            positions_list.append(Position(alpaca_position))
-        return positions_list
+        try:
+            alpaca_order: List[alpaca_trade_api.entity.Position] = alpaca_api.close_position(symbol)
+        except APIError as e:
+            if str(e) == "position does not exist":
+                return None
+            else:
+                raise APIError(e)
+
+        return Order(alpaca_order)
 
     @staticmethod
     def close_by_symbol(symbol: str, quantity: Decimal) -> List["Position"]:
@@ -202,9 +219,11 @@ class Order:
         self.order_type = global_common.get_enum_from_value(alpaca_order._raw["order_type"], OrderType)
         self.side = global_common.get_enum_from_value(alpaca_order._raw["side"], OrderSide)
         self.time_in_force = global_common.get_enum_from_value(alpaca_order._raw["time_in_force"], OrderTimeInForce)
-        self.limit_price = Decimal(alpaca_order._raw["limit_price"])
         self.status = global_common.get_enum_from_value(alpaca_order._raw["status"], OrderStatus)
         self.is_extended_hours = alpaca_order._raw["extended_hours"]
+
+        if alpaca_order._raw["limit_price"] is not None:
+            self.limit_price = Decimal(alpaca_order._raw["limit_price"])
 
         if alpaca_order._raw["filled_at"] is not None:
             self.filled_at = dateutil.parser.isoparse(alpaca_order._raw["filled_at"])
@@ -226,13 +245,18 @@ class Order:
         if custom_order_id is None:
             custom_order_id = str(uuid.uuid4())
 
+        if order_type == OrderType.MARKET:
+            float_limit_price: float = None
+        else:
+            float_limit_price = float(limit_price)
+
         communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
                                             f"<u><b>Placing a new order</b></u>"
                                             f"\n\nSymbol: <i>{symbol}</i>"
                                             f"\nOrder Type: <i>{order_type.value}</i>"
                                             f"\nOrder Side: <i>{order_side.value}</i>"
                                             f"\nQuantity: <i>{str(quantity)}</i>\nPrice: "
-                                            f"<i>{str(limit_price)}</i>", True)
+                                            f"<i>{str(float_limit_price)}</i>", True)
 
         alpaca_order: alpaca_trade_api.entity.Order = alpaca_api.submit_order(
             symbol=symbol,
@@ -240,22 +264,25 @@ class Order:
             side=order_side.value,
             type=order_type.value,
             time_in_force=time_in_force.value,
-            limit_price=float(limit_price),
+            limit_price=float_limit_price,
             client_order_id=custom_order_id
         )
         order: Order = Order(alpaca_order)
 
         if order.order_type == OrderType.MARKET:
-            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
-                                                f"<u><b>Order status</b></u>"
-                                                f"\n\nSymbol: <i>{symbol}</i>"
-                                                f"\nOrder Type: <i>{order_type.value}</i>"
-                                                f"\nOrder Side: <i>{order_side.value}</i>"
-                                                f"\nQuantity: <i>{str(quantity)}</i>"
-                                                f"\nFilled Quantity: <i>{str(order.filled_qty)}</i>"
-                                                f"\nFilled Average Price: <i>${global_common.get_formatted_string_from_decimal(order.filled_avg_price)}</i>", True)
+            message: str = f"<u><b>Order status</b></u>" \
+                           f"\n\nSymbol: <i>{symbol}</i>" \
+                           f"\nOrder Type: <i>{order_type.value}</i>" \
+                           f"\nOrder Side: <i>{order_side.value}</i>" \
+                           f"\nQuantity: <i>{str(quantity)}</i>" \
+                           f"\nFilled Quantity: <i>{str(order.filled_qty)}</i>"
 
-        return Order(alpaca_order)
+            if order.filled_qty > 0:
+                message = message + f"\nFilled Average Price: <i>${global_common.get_formatted_string_from_decimal(order.filled_avg_price)}</i>"
+
+            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username, message, True)
+
+        return order
 
     @staticmethod
     def get_by_custom_order_id(custom_order_id: str) -> "Order":
