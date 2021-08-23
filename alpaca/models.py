@@ -222,7 +222,7 @@ class Order:
             self.filled_avg_price = Decimal(alpaca_order._raw["filled_avg_price"])
 
     @staticmethod
-    def place(symbol: str, quantity: str, order_side: OrderSide, order_type: OrderType, limit_price: Decimal, time_in_force: OrderTimeInForce, custom_order_id: str = None) -> "Order":
+    def place(symbol: str, quantity: int, order_side: OrderSide, order_type: OrderType, limit_price: Decimal, time_in_force: OrderTimeInForce, custom_order_id: str = None) -> "Order":
         if custom_order_id is None:
             custom_order_id = str(uuid.uuid4())
 
@@ -234,7 +234,7 @@ class Order:
                                             f"\nQuantity: <i>{str(quantity)}</i>\nPrice: "
                                             f"<i>{str(limit_price)}</i>", True)
 
-        order: alpaca_trade_api.entity.Order = alpaca_api.submit_order(
+        alpaca_order: alpaca_trade_api.entity.Order = alpaca_api.submit_order(
             symbol=symbol,
             qty=int(quantity),
             side=order_side.value,
@@ -243,7 +243,19 @@ class Order:
             limit_price=float(limit_price),
             client_order_id=custom_order_id
         )
-        return Order(order)
+        order: Order = Order(alpaca_order)
+
+        if order.order_type == OrderType.MARKET:
+            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                                f"<u><b>Order status</b></u>"
+                                                f"\n\nSymbol: <i>{symbol}</i>"
+                                                f"\nOrder Type: <i>{order_type.value}</i>"
+                                                f"\nOrder Side: <i>{order_side.value}</i>"
+                                                f"\nQuantity: <i>{str(quantity)}</i>"
+                                                f"\nFilled Quantity: <i>{str(order.filled_qty)}</i>"
+                                                f"\nFilled Average Price: <i>${global_common.get_formatted_string_from_decimal(order.filled_avg_price)}</i>", True)
+
+        return Order(alpaca_order)
 
     @staticmethod
     def get_by_custom_order_id(custom_order_id: str) -> "Order":
