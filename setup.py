@@ -12,7 +12,9 @@ environment_variables: Dict[str, str] = {"KIH_API_TELEGRAM_BOT_TOKEN": "telegram
                                          "KIH_API_DATABASE_HOST_IP": "database' host's IP",
                                          "KIH_API_DATABASE_USER_NAME": "database' host's username",
                                          "KIH_API_DATABASE_USER_NAME_PASSWORD": "database' host's password",
-                                         "TRANSFER_WISE_API_KEY": "TransferWise API Key"}
+                                         "TRANSFER_WISE_API_KEY": "TransferWise API Key",
+                                         "ALPACA_API_KEY": "Alpaca API Key",
+                                         "ALPACA_API_SECRET": "Alpaca API Secret"}
 
 
 def set_environment_variable(key: str, value: str) -> None:
