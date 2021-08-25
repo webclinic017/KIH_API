@@ -22,6 +22,7 @@ class AccountStatus(enum.Enum):
     APPROVAL_PENDING: str = "APPROVAL_PENDING"
     ACTIVE: str = "ACTIVE"
     REJECTED: str = "REJECTED"
+    DISABLE_PENDING: str = "DISABLE_PENDING"
 
 
 class OrderSide(enum.Enum):
