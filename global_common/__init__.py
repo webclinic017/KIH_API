@@ -124,6 +124,7 @@ def job(job_name: str) -> Callable:
                 if str(e) != "":
                     message = message + f"\nError Message: <i>{str(e).replace('<', '').replace('>', '')}</i>"
                 communication.telegram.send_message(communication.telegram.constants.telegram_channel_username, message, True)
+                raise Exception(e)
 
         return wrapper
 
