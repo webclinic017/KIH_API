@@ -1,9 +1,7 @@
 requests
-function
 urllib3
 pytz
 python-dateutil
 pandas
 numpy
-openpyxl
-alpaca_trade_api
+ibapi

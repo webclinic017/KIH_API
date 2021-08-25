@@ -7,8 +7,8 @@ from requests import Response
 
 import http_requests
 from http_requests.models import ResponseObject
-from ibkr import constants
-from ibkr.exceptions import StockNotFoundException, MarketOrderOutsideRTHException
+from ibkr_web_api import constants
+from ibkr_web_api.exceptions import StockNotFoundException, MarketOrderOutsideRTHException
 
 
 @dataclass

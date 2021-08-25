@@ -1,31 +1,44 @@
-import datetime
+import threading
 import time
+from typing import Dict, Any
 
-import http_requests
-from ibkr import constants, common
-from ibkr.exceptions import KeepAliveFailedException, AuthenticationFailedException
-from ibkr.ibkr_models import Authentication, KeepAlive, ReAuthentication, PortfolioAccounts, SelectAccount
-from logger import logger
+from ibapi.client import EClient
+from ibapi.common import TickAttrib
+from ibapi.contract import Contract
+from ibapi.order import Order
+from ibapi.order_state import OrderState
+from ibapi.wrapper import EWrapper
 
-http_requests.is_ssl_certificate_verification_used = False
-
-
-def keep_alive() -> None:
-    while True:
-        logger.info("Keeping alive: " + str(datetime.datetime.now()))
-        authentication: Authentication = Authentication.call()
-        logger.info("Authentication status: " + str(authentication.authenticated))
-        if not authentication.authenticated or not authentication.is_successful:
-            if not authenticate():
-                raise AuthenticationFailedException()
-        time.sleep(constants.KEEP_ALIVE_TIMEOUT_IN_SECONDS)
+from ibkr import constants
 
 
-def authenticate() -> bool:
-    return ReAuthentication.call().is_successful
+class IBKR_API(EWrapper, EClient):
+    data: Dict[str, Any] = {}
+    next_order_id: int
+
+    def __init__(self) -> None:
+        EClient.__init__(self, self)
+
+    def tickPrice(self, reqId: int, tickType: int, price: float, attrib: TickAttrib) -> None:
+        self.data = {
+            "key": "ask_price",
+            "data": locals()
+        }
+
+    def openOrder(self, orderId: int, contract: Contract, order: Order, orderState: OrderState) -> None:
+        self.data = {
+            "key": "order_status",
+            "data": locals()
+        }
+
+    def nextValidId(self, orderId: int) -> None:
+        super().nextValidId(orderId)
+        self.next_order_id = orderId
+        self.data = {"next_order_id": orderId}
 
 
-try:
-    SelectAccount.execute()
-except Exception as e:
-    logger.error(str(e))
+def connect_to_ib_api(ibkr_api: IBKR_API) -> None:
+    ibkr_api.connect(constants.WEB_SOCKET_IP, constants.WEB_SOCKET_PORT, constants.CLIENT_ID)
+    api_thread = threading.Thread(target=ibkr_api.run, daemon=True)
+    api_thread.start()
+    time.sleep(3)
