@@ -290,8 +290,4 @@ class Account:
 
 
 if __name__ == "__main__":
-    IBKR.close_all_positions()
-    cash: Decimal = IBKR.request_account_summary().cash_balance
-    number_of_stocks: Decimal = Decimal(int((cash * 3) / IBKR.get_current_ask_price("QQQ")))
-    test = IBKR.place_order("QQQ", number_of_stocks, None, OrderAction.BUY, OrderType.MARKET)
     pass
