@@ -1,12 +1,14 @@
 import datetime
 import enum
+import time
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Dict, List, Union
 
-from ibapi.common import BarData
-from ibapi.contract import Contract
-from ibapi.order import Order
+import ibapi.common
+import ibapi.contract
+import ibapi.order
+import ibapi.order_state
 
 import global_common
 from ibkr.helper import IBKR_Helper, InvestmentAnalysisHelper, HistoricalDataHelper
@@ -39,6 +41,25 @@ class HistoricalDataType(enum.Enum):
     YIELD_LAST: str = "YIELD_LAST"
 
 
+class Exchange(enum.Enum):
+    SMART: str = "SMART"
+    NASDAQ: str = "NASDAQ"
+    AMEX: str = "AMEX"
+    NYSE: str = "NYSE"
+    CBOE: str = "CBOE"
+
+
+class OrderStatus(enum.Enum):
+    PENDING_SUBMIT: str = "PendingSubmit"
+    PENDING_CANCEL: str = "PendingCancel"
+    PRE_SUBMITTED: str = "PreSubmitted"
+    SUBMITTED: str = "Submitted"
+    API_CANCELLED: str = "ApiCancelled"
+    CANCELLED: str = "Cancelled"
+    FILLED: str = "Filled"
+    INACTIVE: str = "Inactive"
+
+
 class IBKR:
     @staticmethod
     def get_historical_data(symbol: str, historical_data_type: HistoricalDataType = HistoricalDataType.TRADES) -> List["HistoricalData"]:
@@ -65,16 +86,30 @@ class IBKR:
         return None
 
     @staticmethod
-    def place_order(symbol: str, quantity: Decimal, limit_price: Decimal, order_action: OrderAction, order_type: OrderType) -> List[Any]:
-        order: Order = IBKR_Helper.get_order_object(quantity, limit_price, order_action, order_type)
-        contract: Contract = IBKR_Helper.get_contract_object(symbol)
+    def place_order(symbol: str, quantity: Decimal, limit_price: Decimal, order_action: OrderAction, order_type: OrderType) -> "Order":
+        order: ibapi.order.Order = IBKR_Helper.get_order_object(quantity, limit_price, order_action, order_type)
+        contract: ibapi.contract.Contract = IBKR_Helper.get_contract_object(symbol)
 
         ibkr_api = IBKR_Helper.get_IBKR_connection()
         ibkr_api.placeOrder(ibkr_api.next_order_id, contract, order)
-        return IBKR_Helper.get_data_from_ibkr(ibkr_api, "order_status")
+
+        data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "order_status")
+
+        return Order(data_list[0]["orderId"], data_list[1]["status"], data_list[1]["filled"], data_list[1]["remaining"], data_list[1]["avgFillPrice"], data_list[0]["contract"], data_list[0]["order"], data_list[0]["orderState"])
 
     @staticmethod
-    def request_account_summary(currency: global_common.Currency = None) -> List[Any]:
+    def close_all_positions() -> List["Order"]:
+        IBKR.cancel_all_orders()
+
+        positions_list: List[Position] = IBKR.get_positions()
+        orders_list: List["Order"] = []
+        for position in positions_list:
+            orders_list.append(IBKR.place_order(position.symbol, position.quantity, None, OrderAction.SELL, OrderType.MARKET))
+            time.sleep(1)
+        return orders_list
+
+    @staticmethod
+    def request_account_summary(currency: global_common.Currency = None) -> "Account":
         ibkr_api = IBKR_Helper.get_IBKR_connection()
 
         if currency is None:
@@ -82,14 +117,18 @@ class IBKR:
         else:
             ibkr_api.reqAccountSummary(1, "All", f"$LEDGER:{currency.value}")
 
-        return IBKR_Helper.get_data_from_ibkr(ibkr_api, "account_summary_end", "account_summary")
+        return Account(IBKR_Helper.get_data_from_ibkr(ibkr_api, "account_summary_end", "account_summary"))
 
     @staticmethod
-    def get_positions() -> List[Any]:
+    def get_positions() -> List["Position"]:
         ibkr_api = IBKR_Helper.get_IBKR_connection()
         ibkr_api.reqPositions()
 
-        return IBKR_Helper.get_data_from_ibkr(ibkr_api, "positions_end", "positions")
+        data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "positions_end", "positions")
+        position_list: List["Position"] = []
+        for data in data_list:
+            position_list.append(Position(data.get("account"), data.get("contract"), data.get("position"), data.get("avgCost")))
+        return position_list
 
     @staticmethod
     def get_all_order_status() -> List[Any]:
@@ -102,6 +141,7 @@ class IBKR:
     def cancel_all_orders() -> None:
         ibkr_api = IBKR_Helper.get_IBKR_connection()
         ibkr_api.reqGlobalCancel()
+        time.sleep(1)
         ibkr_api.disconnect()
 
     @staticmethod
@@ -126,7 +166,7 @@ class HistoricalData:
     open: Decimal
     volume: Decimal
 
-    def __init__(self, bar_data: BarData):
+    def __init__(self, bar_data: ibapi.common.BarData):
         self.average = Decimal(str(bar_data.average))
         self.close = Decimal(str(bar_data.close))
         self.high = Decimal(str(bar_data.high))
@@ -181,6 +221,77 @@ class InvestmentAnalysis:
         self.annual_rate_of_return = InvestmentAnalysisHelper.get_annual_rate_of_return(self)
 
 
+@dataclass
+class Position:
+    account: str
+    symbol: str
+    contract: "Contract"
+    quantity: Decimal
+    average_cost: Decimal
+
+    def __init__(self, account: str, contract: ibapi.contract.Contract, quantity: float, average_cost: float):
+        self.account = account
+        self.contract = Contract(contract.conId, contract.currency, contract.symbol, contract.exchange)
+        self.symbol = self.contract.symbol
+        self.quantity = Decimal(str(quantity))
+        self.average_cost = Decimal(str(average_cost))
+
+
+@dataclass
+class Contract:
+    contract_id: int
+    currency: global_common.Currency
+    symbol: str
+    exchange: Exchange
+
+    def __init__(self, contract_id: int, currency: str, symbol: str, exchange: str):
+        self.contract_id = contract_id
+        self.currency = global_common.get_enum_from_value(currency, global_common.Currency)
+        self.symbol = symbol
+        self.exchange = global_common.get_enum_from_value(exchange, Exchange)
+
+
+@dataclass
+class Order:
+    order_id: int
+    status: OrderStatus
+    quantity_filled: Decimal
+    remaining_to_fill: Decimal
+    average_fill_price: Decimal
+    contract: Contract
+    order: ibapi.order.Order
+    order_state: ibapi.order_state.OrderState
+
+    def __init__(self, order_id: int, status: str, quantity_filled: float, remaining_to_fill: float, average_fill_price: float, contract: ibapi.contract.Contract, order: ibapi.order.Order, order_state: ibapi.order_state.OrderState):
+        self.order_id = order_id
+        self.status = global_common.get_enum_from_value(status, OrderStatus)
+        self.quantity_filled = Decimal(str(quantity_filled))
+        self.remaining_to_fill = Decimal(str(remaining_to_fill))
+        self.average_fill_price = Decimal(str(average_fill_price))
+        self.contract = Contract(contract.conId, contract.currency, contract.symbol, contract.exchange)
+        self.order = order
+        self.order_state = order_state
+
+
+@dataclass
+class Account:
+    cash_balance: Decimal
+    stock_market_value: Decimal
+    unrealized_pnl: Decimal
+
+    def __init__(self, data_list: List[Dict[str, Any]]):
+        for data in data_list:
+            if data.get("tag") == "TotalCashBalance":
+                self.cash_balance = Decimal(str(data.get("value")))
+            elif data.get("tag") == "StockMarketValue":
+                self.stock_market_value = Decimal(str(data.get("value")))
+            elif data.get("tag") == "UnrealizedPnL":
+                self.unrealized_pnl = Decimal(str(data.get("value")))
+
+
 if __name__ == "__main__":
-    test = IBKR.get_all_managed_accounts()
+    IBKR.close_all_positions()
+    cash: Decimal = IBKR.request_account_summary().cash_balance
+    number_of_stocks: Decimal = Decimal(int((cash * 3) / IBKR.get_current_ask_price("QQQ")))
+    test = IBKR.place_order("QQQ", number_of_stocks, None, OrderAction.BUY, OrderType.MARKET)
     pass

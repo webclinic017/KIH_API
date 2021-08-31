@@ -48,8 +48,9 @@ class IBKR_Helper:
         order.orderType = order_type.value
         order.totalQuantity = int(quantity)
         order.outsideRth = True
-        if not order_type == OrderType.MARKET or limit_price is not None:
-            order.lmtPrice = str(limit_price)
+
+        if order_type.value != "MKT" or limit_price is not None:
+            order.lmtPrice = float(limit_price)
         return order
 
 
