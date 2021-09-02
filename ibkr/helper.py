@@ -8,14 +8,27 @@ from ibapi.contract import Contract
 from ibapi.order import Order
 
 from ibkr import IBKR_API, connect_to_ib_api
+from ibkr.exceptions import IBKR_APITimeOutError
 
 if typing.TYPE_CHECKING:
-    from ibkr.models import OrderAction, OrderType, InvestmentAnalysis, HistoricalData
+    from ibkr.models import OrderAction, OrderType, InvestmentAnalysis, HistoricalData, SecurityType
 
 
 class IBKR_Helper:
     @staticmethod
     def get_data_from_ibkr(ibkr_api: IBKR_API, key_to_wait_for: str, data_key: str = None) -> List[Any]:
+        data: List = None
+        for _ in range(1, 60):
+            data = ibkr_api.data.get(key_to_wait_for)
+
+            if data is not None:
+                break
+            else:
+                time.sleep(1)
+
+        if data is None:
+            raise IBKR_APITimeOutError()
+
         while ibkr_api.data.get(key_to_wait_for) is None:
             time.sleep(1)
 
@@ -32,12 +45,12 @@ class IBKR_Helper:
         return ibkr_api
 
     @staticmethod
-    def get_contract_object(symbol: str) -> Contract:
+    def get_contract_object(symbol: str, security_type: "SecurityType") -> Contract:
         contract = Contract()
         contract.symbol = symbol
-        contract.secType = "STK"
+        contract.secType = security_type.value
         contract.exchange = "SMART"
-        contract.primaryExchange = "NASDAQ"
+        # contract.primaryExchange = "NASDAQ"
         contract.currency = "USD"
         return contract
 

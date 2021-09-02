@@ -60,12 +60,26 @@ class OrderStatus(enum.Enum):
     INACTIVE: str = "Inactive"
 
 
+class SecurityType(enum.Enum):
+    STOCK: str = "STK"
+    CFD: str = "CFD"
+    INDEX: str = "IND"
+    FUTURE: str = "FUT"
+    OPTION: str = "OPT"
+    FUTURES_OPTION: str = "FOP"
+    BONDS: str = "BOND"
+    MUTUAL_FUND: str = "FUND"
+    COMMODITY: str = "CMDTY"
+    STANDARD_WARRANT: str = "WAR"
+    STRUCTURED_PRODUCT_AND_DUTCH_WARRANT: str = "IOPT"
+
+
 class IBKR:
     @staticmethod
     def get_historical_data(symbol: str, historical_data_type: HistoricalDataType = HistoricalDataType.TRADES) -> List["HistoricalData"]:
         ibkr_api = IBKR_Helper.get_IBKR_connection()
         ibkr_api.reqPositions()
-        ibkr_api.reqHistoricalData(ibkr_api.next_order_id, IBKR_Helper.get_contract_object(symbol), (datetime.datetime.today()).strftime("%Y%m%d %H:%M:%S"), "20 Y", "1 day", historical_data_type.value, 1, 1, False, [])
+        ibkr_api.reqHistoricalData(ibkr_api.next_order_id, IBKR_Helper.get_contract_object(symbol, SecurityType.STOCK), (datetime.datetime.today()).strftime("%Y%m%d %H:%M:%S"), "20 Y", "1 day", historical_data_type.value, 1, 1, False, [])
         raw_historical_data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "historical_data_end", "historical_data")
 
         historical_data: List[HistoricalData] = []
@@ -75,7 +89,7 @@ class IBKR:
 
     @staticmethod
     def get_current_ask_price(symbol: str) -> Union[Decimal, None]:
-        contract = IBKR_Helper.get_contract_object(symbol)
+        contract = IBKR_Helper.get_contract_object(symbol, SecurityType.STOCK)
 
         ibkr_api = IBKR_Helper.get_IBKR_connection()
         ibkr_api.reqMktData(1, contract, '', False, False, [])
@@ -86,9 +100,9 @@ class IBKR:
         return None
 
     @staticmethod
-    def place_order(symbol: str, quantity: Decimal, limit_price: Decimal, order_action: OrderAction, order_type: OrderType) -> "Order":
+    def place_order(symbol: str, quantity: Decimal, limit_price: Decimal, order_action: OrderAction, order_type: OrderType, security_type: SecurityType) -> "Order":
         order: ibapi.order.Order = IBKR_Helper.get_order_object(quantity, limit_price, order_action, order_type)
-        contract: ibapi.contract.Contract = IBKR_Helper.get_contract_object(symbol)
+        contract: ibapi.contract.Contract = IBKR_Helper.get_contract_object(symbol, security_type)
 
         ibkr_api = IBKR_Helper.get_IBKR_connection()
         ibkr_api.placeOrder(ibkr_api.next_order_id, contract, order)
@@ -104,8 +118,9 @@ class IBKR:
         positions_list: List[Position] = IBKR.get_positions()
         orders_list: List["Order"] = []
         for position in positions_list:
-            orders_list.append(IBKR.place_order(position.symbol, position.quantity, None, OrderAction.SELL, OrderType.MARKET))
-            time.sleep(1)
+            if position.quantity > 0:
+                orders_list.append(IBKR.place_order(position.symbol, position.quantity, None, OrderAction.SELL, OrderType.MARKET, position.security_type))
+                time.sleep(1)
         return orders_list
 
     @staticmethod
@@ -113,9 +128,9 @@ class IBKR:
         ibkr_api = IBKR_Helper.get_IBKR_connection()
 
         if currency is None:
-            ibkr_api.reqAccountSummary(1, "All", "$LEDGER")
+            ibkr_api.reqAccountSummary(2, "All", "$LEDGER")
         else:
-            ibkr_api.reqAccountSummary(1, "All", f"$LEDGER:{currency.value}")
+            ibkr_api.reqAccountSummary(2, "All", f"$LEDGER:{currency.value}")
 
         return Account(IBKR_Helper.get_data_from_ibkr(ibkr_api, "account_summary_end", "account_summary"))
 
@@ -228,6 +243,7 @@ class Position:
     contract: "Contract"
     quantity: Decimal
     average_cost: Decimal
+    security_type: SecurityType
 
     def __init__(self, account: str, contract: ibapi.contract.Contract, quantity: float, average_cost: float):
         self.account = account
@@ -235,6 +251,7 @@ class Position:
         self.symbol = self.contract.symbol
         self.quantity = Decimal(str(quantity))
         self.average_cost = Decimal(str(average_cost))
+        self.security_type = global_common.get_enum_from_value(contract.secType, SecurityType)
 
 
 @dataclass

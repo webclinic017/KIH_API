@@ -1,3 +1,3 @@
 WEB_SOCKET_IP: str = "127.0.0.1"
 WEB_SOCKET_PORT: int = 7497
-CLIENT_ID: int = 123
+CLIENT_ID: int = 234

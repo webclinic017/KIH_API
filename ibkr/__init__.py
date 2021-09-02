@@ -1,6 +1,6 @@
 import threading
 import time
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from ibapi.client import EClient
 from ibapi.common import TickAttrib, BarData, OrderId
@@ -13,7 +13,7 @@ from ibkr import constants
 
 
 class IBKR_API(EWrapper, EClient):
-    data: Dict[str, Any] = {}
+    data: Dict[str, List[Any]] = {}
     next_order_id: int
 
     def __init__(self) -> None:
