@@ -47,6 +47,7 @@ class Exchange(enum.Enum):
     AMEX: str = "AMEX"
     NYSE: str = "NYSE"
     CBOE: str = "CBOE"
+    NO_EXCHANGE: str = ""
 
 
 class OrderStatus(enum.Enum):
@@ -295,6 +296,7 @@ class Account:
     cash_balance: Decimal
     stock_market_value: Decimal
     unrealized_pnl: Decimal
+    net_liquidity: Decimal
 
     def __init__(self, data_list: List[Dict[str, Any]]):
         for data in data_list:
@@ -304,6 +306,8 @@ class Account:
                 self.stock_market_value = Decimal(str(data.get("value")))
             elif data.get("tag") == "UnrealizedPnL":
                 self.unrealized_pnl = Decimal(str(data.get("value")))
+            elif data.get("tag") == "NetLiquidationByCurrency":
+                self.net_liquidity = Decimal(str(data.get("value")))
 
 
 if __name__ == "__main__":
