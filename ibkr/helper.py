@@ -8,7 +8,7 @@ from ibapi.contract import Contract
 from ibapi.order import Order
 
 from ibkr import IBKR_API, connect_to_ib_api
-from ibkr.exceptions import IBKR_APITimeOutError
+from ibkr.exceptions import IBKR_APITimeOutException
 
 if typing.TYPE_CHECKING:
     from ibkr.models import OrderAction, OrderType, InvestmentAnalysis, HistoricalData, SecurityType
@@ -27,7 +27,7 @@ class IBKR_Helper:
                 time.sleep(1)
 
         if data is None:
-            raise IBKR_APITimeOutError()
+            raise IBKR_APITimeOutException()
 
         while ibkr_api.data.get(key_to_wait_for) is None:
             time.sleep(1)

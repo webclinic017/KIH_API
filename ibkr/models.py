@@ -10,7 +10,9 @@ import ibapi.contract
 import ibapi.order
 import ibapi.order_state
 
+import communication.telegram
 import global_common
+from ibkr.exceptions import MarketDataNotAvailableException
 from ibkr.helper import IBKR_Helper, InvestmentAnalysisHelper, HistoricalDataHelper
 
 
@@ -89,7 +91,16 @@ class IBKR:
         return historical_data
 
     @staticmethod
-    def get_current_ask_price(symbol: str) -> Union[Decimal, None]:
+    def is_market_open(symbol: str) -> bool:
+        # try:
+        #     IBKR.get_current_ask_price(symbol)
+        #     return True
+        # except MarketNotOpenException:
+        #     return False
+        return True
+
+    @staticmethod
+    def get_current_ask_price(symbol: str, number_of_tries: int = 0) -> Union[Decimal, None]:
         contract = IBKR_Helper.get_contract_object(symbol, SecurityType.STOCK)
 
         ibkr_api = IBKR_Helper.get_IBKR_connection()
@@ -98,10 +109,21 @@ class IBKR:
         for data in data_list:
             if data.get("price") != -1:
                 return Decimal(str(data.get("price")))
-        return None
+
+        if number_of_tries < 3:
+            return IBKR.get_current_ask_price(symbol, number_of_tries + 1)
+        else:
+            raise MarketDataNotAvailableException()
 
     @staticmethod
     def place_order(symbol: str, quantity: Decimal, limit_price: Decimal, order_action: OrderAction, order_type: OrderType, security_type: SecurityType) -> "Order":
+        communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                            f"<u><b>Placing a new order</b></u>\n\nSymbol: <i>{symbol}</i>"
+                                            f"\nOrder Type: <i>{order_type.value}</i>"
+                                            f"\nOrder Action: <i>{order_action.value}</i>"
+                                            f"\nQuantity: <i>{str(quantity)}</i>"
+                                            f"\nPrice: <i>{str(limit_price)}</i>", True)
+
         order: ibapi.order.Order = IBKR_Helper.get_order_object(quantity, limit_price, order_action, order_type)
         contract: ibapi.contract.Contract = IBKR_Helper.get_contract_object(symbol, security_type)
 
@@ -120,6 +142,11 @@ class IBKR:
         orders_list: List["Order"] = []
         for position in positions_list:
             if position.quantity > 0:
+                communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                                    f"<u><b>Closing all positions</b></u>"
+                                                    f"\n\nSymbol: <i>{position.symbol}</i>"
+                                                    f"\nQuantity: <i>{str(position.quantity)}</i>", True)
+
                 orders_list.append(IBKR.place_order(position.symbol, position.quantity, None, OrderAction.SELL, OrderType.MARKET, position.security_type))
                 time.sleep(1)
         return orders_list
@@ -155,6 +182,8 @@ class IBKR:
 
     @staticmethod
     def cancel_all_orders() -> None:
+        communication.telegram.send_message(communication.telegram.constants.telegram_channel_username, "<u><b>Cancelling all orders</b></u>", True)
+
         ibkr_api = IBKR_Helper.get_IBKR_connection()
         ibkr_api.reqGlobalCancel()
         time.sleep(1)
@@ -308,7 +337,3 @@ class Account:
                 self.unrealized_pnl = Decimal(str(data.get("value")))
             elif data.get("tag") == "NetLiquidationByCurrency":
                 self.net_liquidity = Decimal(str(data.get("value")))
-
-
-if __name__ == "__main__":
-    pass
