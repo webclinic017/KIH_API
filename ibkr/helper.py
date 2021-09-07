@@ -2,7 +2,7 @@ import datetime
 import time
 import typing
 from decimal import Decimal
-from typing import List, Any
+from typing import List, Any, Union
 
 from ibapi.contract import Contract
 from ibapi.order import Order
@@ -11,7 +11,7 @@ from ibkr import IBKR_API, connect_to_ib_api
 from ibkr.exceptions import IBKR_APITimeOutException
 
 if typing.TYPE_CHECKING:
-    from ibkr.models import OrderAction, OrderType, InvestmentAnalysis, HistoricalData, SecurityType
+    from ibkr.models import OrderAction, OrderType, HistoricalData, SecurityType
 
 
 class IBKR_Helper:
@@ -26,17 +26,12 @@ class IBKR_Helper:
             else:
                 time.sleep(1)
 
+        ibkr_api.disconnect()
+
         if data is None:
             raise IBKR_APITimeOutException()
 
-        while ibkr_api.data.get(key_to_wait_for) is None:
-            time.sleep(1)
-
-        ibkr_api.disconnect()
-        if data_key is None:
-            return ibkr_api.data.get(key_to_wait_for)
-        else:
-            return ibkr_api.data.get(data_key)
+        return ibkr_api.data.get(key_to_wait_for) if data_key is None else ibkr_api.data.get(data_key)
 
     @staticmethod
     def get_IBKR_connection() -> IBKR_API:
@@ -50,8 +45,11 @@ class IBKR_Helper:
         contract.symbol = symbol
         contract.secType = security_type.value
         contract.exchange = "SMART"
-        # contract.primaryExchange = "NASDAQ"
         contract.currency = "USD"
+
+        from ibkr.models import SecurityType
+        if security_type == SecurityType.STOCK:
+            contract.primaryExchange = "NASDAQ"
         return contract
 
     @staticmethod
@@ -69,32 +67,23 @@ class IBKR_Helper:
 
 class HistoricalDataHelper:
     @staticmethod
-    def filter_historical_data_list(from_date_str: str, to_date_str: str, historical_data_list: List["HistoricalData"]) -> List["HistoricalData"]:
-        from_date: datetime.datetime = datetime.datetime.strptime(from_date_str, '%Y-%m-%d')
-        if to_date_str is not None:
-            to_date: datetime.datetime = datetime.datetime.strptime(to_date_str, '%Y-%m-%d')
-        else:
-            to_date = datetime.datetime.today()
+    def filter_historical_data_list(starting_date: Union[datetime.datetime, str], ending_date: Union[datetime.datetime, str], historical_data_list: List["HistoricalData"]) -> List["HistoricalData"]:
+
+        if isinstance(starting_date, str):
+            starting_date = datetime.datetime.strptime(starting_date, '%Y-%m-%d')
+
+        if ending_date is None:
+            ending_date = datetime.datetime.today()
+        elif isinstance(ending_date, str):
+            ending_date = datetime.datetime.strptime(ending_date, '%Y-%m-%d')
 
         return_historical_data: List["HistoricalData"] = []
         for historical_data in historical_data_list:
-            if from_date <= historical_data.datetime <= to_date:
+            if starting_date <= historical_data.datetime <= ending_date:
                 return_historical_data.append(historical_data)
+
+        return_historical_data.sort(key=lambda x: x.datetime)
         return return_historical_data
 
 
-class InvestmentAnalysisHelper:
 
-    @staticmethod
-    def get_number_of_years(investment_analysis: "InvestmentAnalysis") -> Decimal:
-        number_of_whole_years: Decimal = Decimal((investment_analysis.ending_date.year - investment_analysis.starting_date.year))
-        starting_date_reference: datetime.datetime = datetime.datetime(year=2000, month=investment_analysis.starting_date.month, day=investment_analysis.starting_date.day)
-        ending_date_reference: datetime.datetime = datetime.datetime(year=2000, month=investment_analysis.ending_date.month, day=investment_analysis.ending_date.day)
-        number_of_days = Decimal((ending_date_reference - starting_date_reference).days) + Decimal("1")
-        return number_of_whole_years + (number_of_days / Decimal("365"))
-
-    @staticmethod
-    def get_annual_rate_of_return(investment_analysis: "InvestmentAnalysis") -> Decimal:
-        a: Decimal = investment_analysis.ending_balance ** (1 / investment_analysis.number_of_years)
-        b: Decimal = (1 / investment_analysis.starting_balance) ** (1 / investment_analysis.number_of_years)
-        return (a * b) - Decimal("1")

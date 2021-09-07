@@ -17,6 +17,7 @@ class IBKR_API(EWrapper, EClient):
     next_order_id: int
 
     def __init__(self) -> None:
+        self.data = {}
         EClient.__init__(self, self)
 
     def save_data(self, key: str, data: Any) -> None:
@@ -81,6 +82,11 @@ class IBKR_API(EWrapper, EClient):
     def contractDetailsEnd(self, reqId: int) -> None:
         super().contractDetailsEnd(reqId)
         self.save_data("contract_details_end", locals())
+
+    def disconnect(self) -> None:
+        super().disconnect()
+        while self.isConnected():
+            time.sleep(1)
 
 
 def connect_to_ib_api(ibkr_api: IBKR_API) -> None:
