@@ -13,7 +13,7 @@ import ibapi.order_state
 import communication.telegram
 import global_common
 from ibkr.exceptions import MarketDataNotAvailableException
-from ibkr.helper import IBKR_Helper, InvestmentAnalysisHelper, HistoricalDataHelper
+from ibkr.helper import IBKR_Helper
 
 
 class OrderType(enum.Enum):
@@ -81,8 +81,7 @@ class IBKR:
     @staticmethod
     def get_historical_data(symbol: str, historical_data_type: HistoricalDataType = HistoricalDataType.TRADES) -> List["HistoricalData"]:
         ibkr_api = IBKR_Helper.get_IBKR_connection()
-        ibkr_api.reqPositions()
-        ibkr_api.reqHistoricalData(ibkr_api.next_order_id, IBKR_Helper.get_contract_object(symbol, SecurityType.STOCK), (datetime.datetime.today()).strftime("%Y%m%d %H:%M:%S"), "20 Y", "1 day", historical_data_type.value, 1, 1, False, [])
+        ibkr_api.reqHistoricalData(ibkr_api.next_order_id, IBKR_Helper.get_contract_object(symbol, SecurityType.STOCK), (datetime.datetime.today()).strftime("%Y%m%d %H:%M:%S"), "30 Y", "1 day", historical_data_type.value, 1, 1, False, [])
         raw_historical_data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "historical_data_end", "historical_data")
 
         historical_data: List[HistoricalData] = []
@@ -220,51 +219,6 @@ class HistoricalData:
         self.volume = Decimal(str(bar_data.volume))
         self.datetime = datetime.datetime.strptime(bar_data.date, '%Y%m%d')
 
-    @staticmethod
-    def calculate_daily_leveraged_trading_return(symbol: str, starting_capital: Decimal, leverage: Decimal, from_date_str: str = None, to_date_str: str = None) -> "InvestmentAnalysis":
-        historical_data_list: List["HistoricalData"] = IBKR.get_historical_data(symbol)
-
-        if from_date_str is not None:
-            historical_data_list = HistoricalDataHelper.filter_historical_data_list(from_date_str, to_date_str, historical_data_list)
-        historical_data_list.sort(key=lambda x: x.datetime)
-
-        number_of_shares_bought: Decimal = Decimal(0)
-        loan_amount: Decimal = Decimal(0)
-        net_liquidity: Decimal = Decimal(0)
-
-        for historical_data in historical_data_list:
-            if historical_data == historical_data_list[0]:
-                cash_balance: Decimal = starting_capital
-            else:
-                cash_balance = (number_of_shares_bought * historical_data.close) - loan_amount
-
-            number_of_shares_bought = Decimal(int((cash_balance * leverage) / historical_data.close))
-            loan_amount = (number_of_shares_bought * historical_data.close) - cash_balance
-            net_liquidity = (number_of_shares_bought * historical_data.close) - loan_amount
-
-        return InvestmentAnalysis(historical_data_list[0].datetime, historical_data_list[-1].datetime, starting_capital, net_liquidity)
-
-
-@dataclass
-class InvestmentAnalysis:
-    starting_date: datetime.datetime
-    ending_date: datetime.datetime
-    number_of_years: Decimal
-    starting_balance: Decimal
-    ending_balance: Decimal
-    profit: Decimal
-    annual_rate_of_return: Decimal
-
-    def __init__(self, starting_date: datetime.datetime, ending_date: datetime.datetime, starting_balance: Decimal, ending_balance: Decimal):
-        self.starting_balance = starting_balance
-        self.ending_balance = ending_balance
-        self.starting_date = starting_date
-        self.ending_date = ending_date
-
-        self.profit = self.ending_balance - self.starting_balance
-        self.number_of_years = InvestmentAnalysisHelper.get_number_of_years(self)
-        self.annual_rate_of_return = InvestmentAnalysisHelper.get_annual_rate_of_return(self)
-
 
 @dataclass
 class Position:
@@ -337,3 +291,6 @@ class Account:
                 self.unrealized_pnl = Decimal(str(data.get("value")))
             elif data.get("tag") == "NetLiquidationByCurrency":
                 self.net_liquidity = Decimal(str(data.get("value")))
+
+
+
