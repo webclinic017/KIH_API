@@ -26,7 +26,7 @@ class IBKR_Helper:
             else:
                 time.sleep(1)
 
-        ibkr_api.disconnect()
+        # ibkr_api.disconnect()
 
         if data is None:
             raise IBKR_APITimeOutException()
