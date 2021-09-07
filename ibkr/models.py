@@ -81,6 +81,7 @@ class IBKR:
     @staticmethod
     def get_historical_data(symbol: str, historical_data_type: HistoricalDataType = HistoricalDataType.TRADES) -> List["HistoricalData"]:
         ibkr_api = IBKR_Helper.get_IBKR_connection()
+        print(f"***********************************Order ID: {ibkr_api.next_order_id}")
         ibkr_api.reqHistoricalData(ibkr_api.next_order_id, IBKR_Helper.get_contract_object(symbol, SecurityType.STOCK), (datetime.datetime.today()).strftime("%Y%m%d %H:%M:%S"), "30 Y", "1 day", historical_data_type.value, 1, 1, False, [])
         raw_historical_data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "historical_data_end", "historical_data")
 
@@ -127,6 +128,7 @@ class IBKR:
         contract: ibapi.contract.Contract = IBKR_Helper.get_contract_object(symbol, security_type)
 
         ibkr_api = IBKR_Helper.get_IBKR_connection()
+        print(f"***********************************Order ID: {ibkr_api.next_order_id}")
         ibkr_api.placeOrder(ibkr_api.next_order_id, contract, order)
 
         data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "order_status")
