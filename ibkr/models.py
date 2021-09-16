@@ -170,8 +170,11 @@ class IBKR:
 
         data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "positions_end", "positions")
         position_list: List["Position"] = []
-        for data in data_list:
-            position_list.append(Position(data.get("account"), data.get("contract"), data.get("position"), data.get("avgCost")))
+
+        if data_list is not None:
+            for data in data_list:
+                position_list.append(Position(data.get("account"), data.get("contract"), data.get("position"), data.get("avgCost")))
+
         return position_list
 
     @staticmethod

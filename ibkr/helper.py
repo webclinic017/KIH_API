@@ -19,19 +19,18 @@ class IBKR_Helper:
     def get_data_from_ibkr(ibkr_api: IBKR_API, key_to_wait_for: str, data_key: str = None) -> List[Any]:
         data: List = None
         for _ in range(1, 60):
-            data = ibkr_api.data.get(key_to_wait_for)
-
-            if data is not None:
+            if ibkr_api.data.get(key_to_wait_for) is not None:
+                data = ibkr_api.data.get(key_to_wait_for) if data_key is None else ibkr_api.data.get(data_key)
                 break
             else:
                 time.sleep(1)
 
         ibkr_api.disconnect()
 
-        if data is None:
+        if ibkr_api.data.get(key_to_wait_for) is None:
             raise IBKR_APITimeOutException()
 
-        return ibkr_api.data.get(key_to_wait_for) if data_key is None else ibkr_api.data.get(data_key)
+        return data
 
     @staticmethod
     def get_IBKR_connection() -> IBKR_API:
