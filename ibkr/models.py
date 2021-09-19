@@ -104,7 +104,7 @@ class IBKR:
         contract = IBKR_Helper.get_contract_object(symbol, SecurityType.STOCK)
 
         ibkr_api = IBKR_Helper.get_IBKR_connection()
-        ibkr_api.reqMktData(1, contract, '', False, False, [])
+        ibkr_api.reqMktData(ibkr_api.next_order_id, contract, '', False, False, [])
         data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "ask_price")
         for data in data_list:
             if data.get("price") != -1:
