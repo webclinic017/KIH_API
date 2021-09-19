@@ -90,7 +90,8 @@ class IBKR_API(EWrapper, EClient):
 
 
 def connect_to_ib_api(ibkr_api: IBKR_API) -> None:
+    time.sleep(5)
     ibkr_api.connect(constants.WEB_SOCKET_IP, constants.WEB_SOCKET_PORT, constants.CLIENT_ID)
     api_thread = threading.Thread(target=ibkr_api.run, daemon=True)
     api_thread.start()
-    time.sleep(3)
+    time.sleep(5)
