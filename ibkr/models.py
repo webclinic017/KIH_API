@@ -78,16 +78,40 @@ class SecurityType(enum.Enum):
     STRUCTURED_PRODUCT_AND_DUTCH_WARRANT: str = "IOPT"
 
 
+class HistoricalDataBarSize(enum.Enum):
+    SECOND_1: str = "1 secs"
+    SECOND_5: str = "5 secs"
+    SECOND_10: str = "10 secs"
+    SECOND_15: str = "15 secs"
+    SECOND_30: str = "30 secs"
+    MINUTE_1: str = "1 min"
+    MINUTE_2: str = "2 min"
+    MINUTE_3: str = "3 min"
+    MINUTE_5: str = "5 min"
+    MINUTE_10: str = "10 min"
+    MINUTE_15: str = "15 min"
+    MINUTE_20: str = "20 min"
+    MINUTE_30: str = "30 min"
+    HOUR_1: str = "1 hour"
+    HOUR_2: str = "2 hours"
+    HOUR_3: str = "3 hours"
+    HOUR_4: str = "4 hours"
+    HOUR_8: str = "8 hours"
+    DAY_1: str = "1 day"
+    WEEK_1: str = "1 week"
+    MONTH_1: str = "1 month"
+
+
 class IBKR:
     @staticmethod
-    def write_historical_data(symbol: str, location: str, historical_data_type: HistoricalDataType = HistoricalDataType.TRADES) -> None:
-        historical_data: List["HistoricalData"] = IBKR.get_historical_data(symbol, historical_data_type)
+    def write_historical_data(symbol: str, location: str, bar_size: HistoricalDataBarSize = HistoricalDataBarSize.DAY_1, historical_data_type: HistoricalDataType = HistoricalDataType.TRADES) -> None:
+        historical_data: List["HistoricalData"] = IBKR.get_historical_data(symbol, bar_size, historical_data_type)
         global_common.create_csv(historical_data, location)
 
     @staticmethod
-    def get_historical_data(symbol: str, historical_data_type: HistoricalDataType = HistoricalDataType.TRADES) -> List["HistoricalData"]:
+    def get_historical_data(symbol: str, bar_size: HistoricalDataBarSize = HistoricalDataBarSize.DAY_1, historical_data_type: HistoricalDataType = HistoricalDataType.TRADES) -> List["HistoricalData"]:
         ibkr_api: IBKR_API = IBKR_Helper.get_IBKR_connection()
-        ibkr_api.reqHistoricalData(ibkr_api.next_order_id, IBKR_Helper.get_contract_object(symbol, SecurityType.STOCK), (datetime.datetime.today()).strftime("%Y%m%d %H:%M:%S"), "30 Y", "1 day", historical_data_type.value, 1, 1, False, [])
+        ibkr_api.reqHistoricalData(ibkr_api.next_order_id, IBKR_Helper.get_contract_object(symbol, SecurityType.STOCK), (datetime.datetime.today()).strftime("%Y%m%d %H:%M:%S"), "30 Y", bar_size.value, historical_data_type.value, 1, 1, False, [])
         raw_historical_data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "historical_data_end", "historical_data")
 
         historical_data: List[HistoricalData] = []
@@ -233,7 +257,9 @@ class HistoricalData:
         self.low = Decimal(str(bar_data.low))
         self.open = Decimal(str(bar_data.open))
         self.volume = Decimal(str(bar_data.volume))
-        self.datetime = datetime.datetime.strptime(bar_data.date, '%Y%m%d')
+
+        format_str: str = "%Y%m%d" if len(bar_data.date) == 8 else "%Y%m%d %H:%M:%S"
+        self.datetime = datetime.datetime.strptime(bar_data.date, format_str)
 
 
 @dataclass
