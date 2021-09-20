@@ -36,7 +36,6 @@ class IBKR_API(EWrapper, EClient):
         self.save_data("order_status", locals())
 
     def nextValidId(self, orderId: int) -> None:
-        super().nextValidId(orderId)
         self.next_order_id = orderId
         self.save_data("next_order_id", locals())
 
@@ -85,11 +84,11 @@ class IBKR_API(EWrapper, EClient):
 
     def disconnect(self) -> None:
         super().disconnect()
-        time.sleep(5)
+        time.sleep(constants.WAIT_TIME_IN_SECONDS)
 
 
 def connect_to_ib_api(ibkr_api: IBKR_API) -> None:
     ibkr_api.connect(constants.WEB_SOCKET_IP, constants.WEB_SOCKET_PORT, constants.CLIENT_ID)
     api_thread = threading.Thread(target=ibkr_api.run, daemon=True)
     api_thread.start()
-    time.sleep(5)
+    time.sleep(constants.WAIT_TIME_IN_SECONDS)
