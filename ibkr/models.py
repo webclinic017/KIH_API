@@ -128,7 +128,6 @@ class IBKR:
         contract: ibapi.contract.Contract = IBKR_Helper.get_contract_object(symbol, security_type)
 
         ibkr_api = IBKR_Helper.get_IBKR_connection()
-        print(f"***********************************Order ID: {ibkr_api.next_order_id}")
         ibkr_api.placeOrder(ibkr_api.next_order_id, contract, order)
 
         data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "order_status")
