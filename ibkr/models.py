@@ -13,7 +13,7 @@ import ibapi.order_state
 import communication.telegram
 import global_common
 from ibkr import constants, IBKR_API
-from ibkr.exceptions import MarketDataNotAvailableException
+from ibkr.exceptions import MarketDataNotAvailableException, IBKR_APITimeOutException
 from ibkr.helper import IBKR_Helper
 
 
@@ -204,10 +204,11 @@ class IBKR:
 
     @staticmethod
     def is_connection_successful() -> bool:
-        ibkr_api: IBKR_API = IBKR_Helper.get_IBKR_connection()
-        is_connection_successful: bool = ibkr_api.isConnected()
-        ibkr_api.disconnect()
-        return is_connection_successful
+        try:
+            IBKR.get_current_ask_price("QQQ")
+            return True
+        except IBKR_APITimeOutException:
+            return False
 
 
 @dataclass
