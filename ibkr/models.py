@@ -13,7 +13,7 @@ import ibapi.order_state
 import communication.telegram
 import global_common
 from ibkr import constants, IBKR_API
-from ibkr.exceptions import MarketDataNotAvailableException, IBKR_APITimeOutException
+from ibkr.exceptions import MarketDataNotAvailableException
 from ibkr.helper import IBKR_Helper
 
 
@@ -207,7 +207,7 @@ class IBKR:
         try:
             IBKR.get_current_ask_price("QQQ")
             return True
-        except IBKR_APITimeOutException:
+        except:
             return False
 
 
