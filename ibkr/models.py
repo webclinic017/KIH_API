@@ -12,7 +12,7 @@ import ibapi.order_state
 
 import communication.telegram
 import global_common
-from ibkr import constants
+from ibkr import constants, IBKR_API
 from ibkr.exceptions import MarketDataNotAvailableException
 from ibkr.helper import IBKR_Helper
 
@@ -81,7 +81,7 @@ class SecurityType(enum.Enum):
 class IBKR:
     @staticmethod
     def get_historical_data(symbol: str, historical_data_type: HistoricalDataType = HistoricalDataType.TRADES) -> List["HistoricalData"]:
-        ibkr_api = IBKR_Helper.get_IBKR_connection()
+        ibkr_api: IBKR_API = IBKR_Helper.get_IBKR_connection()
         ibkr_api.reqHistoricalData(ibkr_api.next_order_id, IBKR_Helper.get_contract_object(symbol, SecurityType.STOCK), (datetime.datetime.today()).strftime("%Y%m%d %H:%M:%S"), "30 Y", "1 day", historical_data_type.value, 1, 1, False, [])
         raw_historical_data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "historical_data_end", "historical_data")
 
@@ -103,7 +103,7 @@ class IBKR:
     def get_current_ask_price(symbol: str, number_of_tries: int = 0) -> Union[Decimal, None]:
         contract = IBKR_Helper.get_contract_object(symbol, SecurityType.STOCK)
 
-        ibkr_api = IBKR_Helper.get_IBKR_connection()
+        ibkr_api: IBKR_API = IBKR_Helper.get_IBKR_connection()
         ibkr_api.reqMktData(ibkr_api.next_order_id, contract, '', False, False, [])
         data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "ask_price")
         for data in data_list:
@@ -127,7 +127,7 @@ class IBKR:
         order: ibapi.order.Order = IBKR_Helper.get_order_object(quantity, limit_price, order_action, order_type)
         contract: ibapi.contract.Contract = IBKR_Helper.get_contract_object(symbol, security_type)
 
-        ibkr_api = IBKR_Helper.get_IBKR_connection()
+        ibkr_api: IBKR_API = IBKR_Helper.get_IBKR_connection()
         ibkr_api.placeOrder(ibkr_api.next_order_id, contract, order)
 
         data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "order_status")
@@ -152,7 +152,7 @@ class IBKR:
 
     @staticmethod
     def request_account_summary(currency: global_common.Currency = None) -> "Account":
-        ibkr_api = IBKR_Helper.get_IBKR_connection()
+        ibkr_api: IBKR_API = IBKR_Helper.get_IBKR_connection()
 
         if currency is None:
             ibkr_api.reqAccountSummary(2, "All", "$LEDGER")
@@ -163,7 +163,7 @@ class IBKR:
 
     @staticmethod
     def get_positions() -> List["Position"]:
-        ibkr_api = IBKR_Helper.get_IBKR_connection()
+        ibkr_api: IBKR_API = IBKR_Helper.get_IBKR_connection()
         ibkr_api.reqPositions()
 
         data_list: List[Dict[str, Any]] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "positions_end", "positions")
@@ -177,7 +177,7 @@ class IBKR:
 
     @staticmethod
     def get_all_order_status() -> List[Any]:
-        ibkr_api = IBKR_Helper.get_IBKR_connection()
+        ibkr_api: IBKR_API = IBKR_Helper.get_IBKR_connection()
         ibkr_api.reqAllOpenOrders()
 
         return IBKR_Helper.get_data_from_ibkr(ibkr_api, "order_status_end", "order_status")
@@ -186,14 +186,14 @@ class IBKR:
     def cancel_all_orders() -> None:
         communication.telegram.send_message(communication.telegram.constants.telegram_channel_username, "<u><b>Cancelling all orders</b></u>", True)
 
-        ibkr_api = IBKR_Helper.get_IBKR_connection()
+        ibkr_api: IBKR_API = IBKR_Helper.get_IBKR_connection()
         ibkr_api.reqGlobalCancel()
         time.sleep(constants.WAIT_TIME_IN_SECONDS)
         ibkr_api.disconnect()
 
     @staticmethod
     def get_all_managed_accounts() -> List[str]:
-        ibkr_api = IBKR_Helper.get_IBKR_connection()
+        ibkr_api: IBKR_API = IBKR_Helper.get_IBKR_connection()
         ibkr_api.reqManagedAccts()
 
         data_list: List[Any] = IBKR_Helper.get_data_from_ibkr(ibkr_api, "managed_accounts")
@@ -201,6 +201,13 @@ class IBKR:
         for data in data_list:
             return_data.append(data.get("accountsList"))
         return return_data
+
+    @staticmethod
+    def is_connection_successful() -> bool:
+        ibkr_api: IBKR_API = IBKR_Helper.get_IBKR_connection()
+        is_connection_successful: bool = ibkr_api.isConnected()
+        ibkr_api.disconnect()
+        return is_connection_successful
 
 
 @dataclass
