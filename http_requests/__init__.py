@@ -63,7 +63,6 @@ def request(url: str, parameters: Optional[Dict[str, Any]], method_type: MethodT
         else:
             raise ServerErrorException(response.text)
 
-    time_taken: int = int((time.time() - start_time) * 1000)
     logger.debug(constants.EXECUTION_TYPE_API_Call + " | " + method_type.value + " | " + response.url + " | " + str(time.time() - start_time) + " | " + url)
 
     return response
