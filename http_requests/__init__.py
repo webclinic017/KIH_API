@@ -1,4 +1,3 @@
-import json
 import time
 from typing import Dict, Optional, Any
 
@@ -6,7 +5,6 @@ import requests
 import urllib3
 from requests import Response
 
-import database.constants
 import http_requests.constants as constants
 from global_common import CustomException
 from http_requests.models import MethodType
@@ -66,17 +64,6 @@ def request(url: str, parameters: Optional[Dict[str, Any]], method_type: MethodT
             raise ServerErrorException(response.text)
 
     time_taken: int = int((time.time() - start_time) * 1000)
-    logger.debug(constants.EXECUTION_TYPE_API_Call + "|" + method_type.value + "|" + response.url + "|" + str(time.time() - start_time) + "|" + url)
-    __log_webservice(url, parameters, response, time_taken)
+    logger.debug(constants.EXECUTION_TYPE_API_Call + " | " + method_type.value + " | " + response.url + " | " + str(time.time() - start_time) + " | " + url)
 
     return response
-
-
-def __log_webservice(url: str, parameters: Dict[str, Any], response: Response, time_taken: int) -> None:
-    parameters = {database.constants.column_Log__Application: database.constants.database_application_name,
-                  database.constants.column_API_Calls__URL: url,
-                  database.constants.column_API_Calls__Response_Code: response.status_code,
-                  database.constants.column_API_Calls__Parameters: str(json.dumps(parameters)).replace("\\n", ""),
-                  database.constants.column_API_Calls__Response: response.text.replace("\\n", ""),
-                  database.constants.column_API_Calls__Execution_Time: int(time_taken)}
-    database.insert(database.constants.table_API_Calls, parameters)
