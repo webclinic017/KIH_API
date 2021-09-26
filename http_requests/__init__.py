@@ -52,17 +52,18 @@ def request(url: str, parameters: Optional[Dict[str, Any]], method_type: MethodT
     elif method_type == MethodType.DELETE:
         response = requests.delete(url=url, params=parameters, verify=is_ssl_certificate_verification_used, headers=headers)
 
-    if 400 <= response.status_code <= 499:
-        print("Response code: " + str(response.status_code))
+    elif 400 <= response.status_code <= 499:
+        logger.error("Response code: " + str(response.status_code))
         raise ClientErrorException(response.text)
     elif 500 <= response.status_code <= 599:
-        print("Response code: " + str(response.status_code))
+        logger.error("Response code: " + str(response.status_code))
         if server_error_retry_times < constants.SERVER_ERROR_RETRY_TIMES:
-            print("Retrying")
+            logger.info("Retrying")
             response = request(url, parameters, method_type, server_error_retry_times + 1)
         else:
             raise ServerErrorException(response.text)
 
     logger.debug(constants.EXECUTION_TYPE_API_Call + " | " + method_type.value + " | " + response.url + " | " + str(time.time() - start_time) + " | " + url)
+    logger.debug(response.text)
 
     return response
