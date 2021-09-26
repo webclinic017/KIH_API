@@ -1,12 +1,9 @@
 import statistics
-import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
-from pprint import pprint
 from typing import List, Union, Any
 
-import global_common
 from ibkr.helper import HistoricalDataHelper
 from ibkr.models import HistoricalData, IBKR
 from investment_analysis.helper import InvestmentAnalysisHelper

@@ -1,11 +1,10 @@
-import statistics
 import typing
 from datetime import datetime
 from decimal import Decimal
 from typing import List
+from typing import Tuple
 
 from ibkr.models import HistoricalData
-from typing import Tuple
 
 if typing.TYPE_CHECKING:
     from investment_analysis.models import HistoricalData, HistoricalReturn
