@@ -80,6 +80,11 @@ class SecurityType(enum.Enum):
 
 class IBKR:
     @staticmethod
+    def write_historical_data(symbol: str, location: str, historical_data_type: HistoricalDataType = HistoricalDataType.TRADES) -> None:
+        historical_data: List["HistoricalData"] = IBKR.get_historical_data(symbol, historical_data_type)
+        global_common.create_csv(historical_data, location)
+
+    @staticmethod
     def get_historical_data(symbol: str, historical_data_type: HistoricalDataType = HistoricalDataType.TRADES) -> List["HistoricalData"]:
         ibkr_api: IBKR_API = IBKR_Helper.get_IBKR_connection()
         ibkr_api.reqHistoricalData(ibkr_api.next_order_id, IBKR_Helper.get_contract_object(symbol, SecurityType.STOCK), (datetime.datetime.today()).strftime("%Y%m%d %H:%M:%S"), "30 Y", "1 day", historical_data_type.value, 1, 1, False, [])
@@ -213,12 +218,12 @@ class IBKR:
 
 @dataclass
 class HistoricalData:
-    average: Decimal
-    close: Decimal
     datetime: datetime.datetime
+    open: Decimal
     high: Decimal
     low: Decimal
-    open: Decimal
+    close: Decimal
+    average: Decimal
     volume: Decimal
 
     def __init__(self, bar_data: ibapi.common.BarData):

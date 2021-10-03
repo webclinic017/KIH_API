@@ -6,6 +6,8 @@ import threading
 from decimal import Decimal
 from typing import Any, Dict, Type, Optional, List, Union, Callable
 
+from dataclass_csv import DataclassWriter
+
 from logger import logger
 
 
@@ -129,3 +131,13 @@ def job(job_name: str) -> Callable:
         return wrapper
 
     return decorator
+
+
+def create_csv(data_class_list: List[Any], location: str) -> None:
+    for data in data_class_list:
+        if not isinstance(data, type(data_class_list[0])):
+            raise Exception("Different objects types in data class list")
+
+    with open(location, "w", newline="\n") as f:
+        w = DataclassWriter(f, data_class_list, type(data_class_list[0]))
+        w.write()
