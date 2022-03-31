@@ -347,6 +347,7 @@ class RecipientDetails:
     swiftCode: Optional[str] = None
     bic: Optional[str] = None
     BIC: Optional[str] = None
+    prefix: Optional[str] = None
 
 
 @dataclass
