@@ -221,9 +221,15 @@ class Transfers:
             if item_number == 1:
                 self.finance_hub = Transfer(bank_account, "Finance Hub", amount, settings.get(bank_account + " Account Number"))
             elif item_number == 2:
-                self.needs = Transfer(bank_account, "Needs", amount, settings.get(bank_account + " Account Number"))
+                if amount > 0:
+                    self.needs = Transfer(bank_account, "Needs", amount, settings.get(bank_account + " Account Number"))
+                else:
+                    self.needs = Transfer(bank_account, "Needs", Decimal(0), settings.get(bank_account + " Account Number"))
             elif item_number == 3:
-                self.wants = Transfer(bank_account, "Wants", amount, settings.get(bank_account + " Account Number"))
+                if amount > 0:
+                    self.wants = Transfer(bank_account, "Wants", amount, settings.get(bank_account + " Account Number"))
+                else:
+                    self.wants = Transfer(bank_account, "Wants", Decimal(0), settings.get(bank_account + " Account Number"))
             elif item_number == 4:
                 self.savings = Transfer(bank_account, "Savings", amount, settings.get(bank_account + " Account Number"))
             item_number = item_number + 1
