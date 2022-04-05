@@ -132,8 +132,16 @@ class MonthlyExpenseReport:
     def assert_accuracy(self, excel_data: ExcelData) -> None:
         summary: Summary = Summary(excel_data)
         fixed_expenses: FixedExpenses = FixedExpenses(excel_data)
-        assert summary.salary == self.needs + self.wants + self.savings + fixed_expenses.needs_expenses.total + \
-               fixed_expenses.wants_expenses.total
+
+        if self.needs < 0:
+            assert summary.salary == self.wants + self.savings + fixed_expenses.needs_expenses.total + \
+                   fixed_expenses.wants_expenses.total
+        elif self.wants < 0:
+            assert summary.salary == self.needs + self.savings + fixed_expenses.needs_expenses.total + \
+                   fixed_expenses.wants_expenses.total
+        else:
+            assert summary.salary == self.needs + self.wants + self.savings + fixed_expenses.needs_expenses.total + \
+                   fixed_expenses.wants_expenses.total
 
 
 class NeedsExpenses:
