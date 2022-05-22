@@ -1,8 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Optional, List, Dict, Any
-from uuid import UUID
 
 from requests import Response
 
@@ -163,22 +161,22 @@ class Transfer(ResponseObject):
     transferRequest: None = None
     sourceAccount: None = None
     quote: None = None
-    quoteUuid: Optional[UUID] = None
+    quoteUuid: Optional[str] = None
     id: Optional[int] = None
     user: Optional[int] = None
     targetAccount: Optional[int] = None
     status: Optional[str] = None
     reference: Optional[str] = None
     rate: Optional[float] = None
-    created: Optional[datetime] = None
+    created: Optional[str] = None
     business: Optional[int] = None
     details: Optional[Details] = None
     hasActiveIssues: Optional[bool] = None
     sourceCurrency: Optional[str] = None
     sourceValue: Optional[float] = None
     targetCurrency: Optional[str] = None
-    targetValue: Optional[int] = None
-    customerTransactionId: Optional[UUID] = None
+    targetValue: Optional[float] = None
+    customerTransactionId: Optional[str] = None
     endpoint: str = constants.ENDPOINT_TRANSFER
 
     @classmethod
@@ -207,7 +205,7 @@ class Fee:
     discount: Optional[int] = None
     total: Optional[float] = None
     priceSetId: Optional[int] = None
-    partner: Optional[int] = None
+    partner: Optional[float] = None
 
 
 @dataclass
@@ -216,9 +214,9 @@ class PaymentOption:
     estimatedDeliveryDelays: Optional[List[Any]] = None
     allowedProfileTypes: Optional[List[str]] = None
     feePercentage: Optional[float] = None
-    estimatedDelivery: Optional[datetime] = None
+    estimatedDelivery: Optional[str] = None
     sourceAmount: Optional[float] = None
-    targetAmount: Optional[int] = None
+    targetAmount: Optional[float] = None
     sourceCurrency: Optional[str] = None
     targetCurrency: Optional[str] = None
     payOut: Optional[str] = None
@@ -243,13 +241,13 @@ class TransferFlowConfig:
 
 @dataclass
 class Quote(ResponseObject):
-    targetAmount: Optional[int] = None
+    targetAmount: Optional[float] = None
     guaranteedTargetAmountAllowed: Optional[bool] = None
     targetAmountAllowed: Optional[bool] = None
     paymentOptions: Optional[List[PaymentOption]] = None
     notices: Optional[List[Any]] = None
     transferFlowConfig: Optional[TransferFlowConfig] = None
-    rateTimestamp: Optional[datetime] = None
+    rateTimestamp: Optional[str] = None
     clientId: Optional[str] = None
     id: Optional[str] = None
     type: Optional[str] = None
@@ -258,14 +256,14 @@ class Quote(ResponseObject):
     sourceCurrency: Optional[str] = None
     targetCurrency: Optional[str] = None
     rate: Optional[float] = None
-    createdTime: Optional[datetime] = None
+    createdTime: Optional[str] = None
     user: Optional[int] = None
     rateType: Optional[str] = None
-    rateExpirationTime: Optional[datetime] = None
+    rateExpirationTime: Optional[str] = None
     payOut: Optional[str] = None
     guaranteedTargetAmount: Optional[bool] = None
     providedAmountType: Optional[str] = None
-    expirationTime: Optional[datetime] = None
+    expirationTime: Optional[str] = None
     targetAccount: Optional[int] = None
     payInCountry: Optional[str] = None
     payOutCountry: Optional[str] = None
@@ -288,12 +286,12 @@ class Quote(ResponseObject):
 
 @dataclass
 class Address:
-    country: None
-    countryCode: None
-    firstLine: None
-    postCode: None
-    city: None
-    state: None
+    country: Optional[str] = None
+    countryCode: Optional[str] = None
+    firstLine: Optional[str] = None
+    postCode: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
 
 
 @dataclass
@@ -335,7 +333,7 @@ class RecipientDetails:
     orderId: Optional[str] = None
     idDocumentType: Optional[str] = None
     idDocumentNumber: Optional[str] = None
-    targetProfile: Optional[int] = None
+    targetProfile: Optional[str] = None
     targetUserId: Optional[str] = None
     taxId: Optional[str] = None
     job: Optional[str] = None
