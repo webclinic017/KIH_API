@@ -1,7 +1,7 @@
 import enum
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import communication.telegram
 import global_common
@@ -9,7 +9,7 @@ from finance_database.exceptions import InsufficientFundsException, AccountForCu
 from http_requests import ClientErrorException
 from logger import logger
 from wise import wise_models
-from wise.exceptions import MultipleUserProfilesWithSameTypeException, MultipleRecipientsWithSameAccountNumberException, TransferringMoneyToNonSelfOwnedAccountsException, ReserveAccountNotFound
+from wise.exceptions import MultipleUserProfilesWithSameTypeException, MultipleRecipientsWithSameAccountNumberException, TransferringMoneyToNonSelfOwnedAccountsException, ReserveAccountNotFoundException
 
 
 class ProfileTypes(enum.Enum):
@@ -125,14 +125,14 @@ class ReserveAccount(Account):
         if create_if_unavailable:
             return ReserveAccount.create_reserve_account(name, currency, profile_type, False)
         else:
-            raise ReserveAccountNotFound()
+            raise ReserveAccountNotFoundException()
 
     @classmethod
     def create_reserve_account(cls, name: str, currency: global_common.Currency, profile_type: ProfileTypes, check_if_available_before_creation: bool = True) -> "ReserveAccount":
         if check_if_available_before_creation:
             try:
                 return ReserveAccount.get_reserve_account_by_profile_type_currency_and_name(profile_type, currency, name)
-            except ReserveAccountNotFound:
+            except ReserveAccountNotFoundException:
                 pass
 
         wise_models.Account.create_reserve_account(name, currency, UserProfile.get_by_profile_type(profile_type).id)
@@ -256,7 +256,7 @@ class Transfer:
                                                      f"\nShort of: {from_currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount - cash_account.balance)}")
 
             user_profile: UserProfile = UserProfile.get_by_profile_type(profile_type)
-            wise_quote: wise_models.Quote = wise_models.Quote.call(user_profile.id, from_currency.value, to_currency.value, float(receiving_amount), recipient.account_id)
+            wise_quote: wise_models.Quote = wise_models.Quote.call(user_profile.id, from_currency.value, to_currency.value, float(receiving_amount))
             wise_transfer: wise_models.Transfer = wise_models.Transfer.call(recipient.account_id, wise_quote.id, reference)
             wise_fund: wise_models.Fund = wise_models.Fund.call(user_profile.id, wise_transfer.id)
             transfer: Transfer = Transfer(user_profile, recipient, wise_transfer, wise_fund)
@@ -288,6 +288,84 @@ class Transfer:
                                                 f"\nTo: <i>{recipient.name}</i>"
                                                 f"\nReference: <i>{reference}</i>"
                                                 f"\n\nReason: <i>{str(e)}</i>", True)
+            raise InsufficientFundsException(str(e))
+
+        return None
+
+
+@dataclass
+class IntraAccountTransfer:
+    from_currency: global_common.Currency
+    from_amount: Decimal
+    from_account: Account
+    to_currency: global_common.Currency
+    to_amount: Decimal
+    to_account: Account
+    exchange_rate: ExchangeRate
+    is_successful: bool
+
+    def __init__(self, from_account: Account, to_account: Account, intra_account_transfer: wise_models.IntraAccountTransfer):
+        self.from_currency = global_common.get_enum_from_value(intra_account_transfer.sourceAmount.currency, global_common.Currency)
+        self.from_amount = Decimal(str(intra_account_transfer.sourceAmount.value))
+        self.from_account = from_account
+        self.to_account = to_account
+        self.to_currency = global_common.get_enum_from_value(intra_account_transfer.targetAmount.currency, global_common.Currency)
+        self.to_amount = Decimal(str(intra_account_transfer.targetAmount.value))
+        self.exchange_rate = ExchangeRate(Decimal(str(intra_account_transfer.rate)), self.from_currency, self.to_currency)
+        self.is_successful = intra_account_transfer.state == "COMPLETED"
+
+    @classmethod
+    def execute(cls, receiving_amount: Decimal, from_currency: global_common.Currency, to_account: Union[CashAccount, ReserveAccount], profile_type: ProfileTypes) -> "IntraAccountTransfer":
+        user_profile: UserProfile = UserProfile.get_by_profile_type(profile_type)
+        from_account: CashAccount = CashAccount.get_by_profile_type_and_currency(profile_type, from_currency)
+        intra_account_transfer: IntraAccountTransfer = None
+        wise_intra_account_transfer: wise_models.IntraAccountTransfer = None
+
+        try:
+            if isinstance(to_account, CashAccount):
+                wise_quote: wise_models.Quote = wise_models.Quote.call(user_profile.id, from_currency.value, to_account.currency.value, float(receiving_amount))
+                wise_intra_account_transfer = wise_models.IntraAccountTransfer.call(user_profile.id, from_account.id, to_account.id, float(receiving_amount), wise_quote.id, None)
+                intra_account_transfer = IntraAccountTransfer(from_account, to_account, wise_intra_account_transfer)
+
+            elif isinstance(to_account, ReserveAccount):
+                if from_currency != to_account.currency:
+                    to_cash_account: CashAccount = CashAccount.get_by_profile_type_and_currency(profile_type, to_account.currency)
+                    IntraAccountTransfer.execute(receiving_amount, from_currency, to_cash_account, profile_type)
+                    from_account = to_cash_account
+
+                if from_account.balance < receiving_amount:
+                    raise InsufficientFundsException(f"Insufficient funds"
+                                                     f"\nRequired amount: {from_currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount)}"
+                                                     f"\nAccount Balance: {from_currency.value} {global_common.get_formatted_string_from_decimal(from_account.balance)}"
+                                                     f"\nShort of: {from_currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount - from_account.balance)}")
+
+                wise_intra_account_transfer = wise_models.IntraAccountTransfer.call(user_profile.id, from_account.id, to_account.id, float(receiving_amount), None, to_account.currency.value)
+                intra_account_transfer = IntraAccountTransfer(from_account, to_account, wise_intra_account_transfer)
+
+                if intra_account_transfer.is_successful:
+                    communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                                        f"<u><b>Intra account money transferred</b></u>"
+                                                        f"\n\nAmount: <i>{to_account.currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount)}</i>"
+                                                        f"\nFrom: <i>{to_account.currency.value}</i>"
+                                                        f"\nTo: <i>{to_account.name if isinstance(to_account, ReserveAccount) else ''} ({to_account.currency.value})</i>", True)
+            return intra_account_transfer
+
+        except ClientErrorException as e:
+            logger.error(str(e))
+            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                                f"<u><b>ERROR: Intra account money transfer failed</b></u>"
+                                                f"\n\nAmount: <i>{to_account.currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount)}</i>"
+                                                f"\nFrom: <i>{to_account.currency.value}</i>"
+                                                f"\nTo: <i>{to_account.name if isinstance(to_account, ReserveAccount) else None} ({to_account.currency.value})</i>"
+                                                f"\nReason: <i>{str(e)}</i>", True)
+        except InsufficientFundsException as e:
+            logger.error(str(e))
+            communication.telegram.send_message(communication.telegram.constants.telegram_channel_username,
+                                                f"<u><b>ERROR: Intra account money transfer failed</b></u>"
+                                                f"\n\nAmount: <i>{to_account.currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount)}</i>"
+                                                f"\nFrom: <i>{to_account.currency.value}</i>"
+                                                f"\nTo: <i>{to_account.name if isinstance(to_account, ReserveAccount) else to_account.currency.value} ({to_account.currency.value})</i>"
+                                                f"\nReason: <i>{str(e)}</i>", True)
             raise InsufficientFundsException(str(e))
 
         return None

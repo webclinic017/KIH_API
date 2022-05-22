@@ -13,5 +13,9 @@ class TransferringMoneyToNonSelfOwnedAccountsException(CustomException):
     pass
 
 
-class ReserveAccountNotFound(CustomException):
+class ReserveAccountNotFoundException(CustomException):
+    pass
+
+
+class UnImplementedException(CustomException):
     pass

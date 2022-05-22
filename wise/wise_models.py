@@ -288,16 +288,15 @@ class Quote(ResponseObject):
     endpoint: str = constants.ENDPOINT_QUOTE
 
     @classmethod
-    def call(cls, profile_id: int, source_currency: str, target_currency: str, target_amount: float, target_account_id: int) -> "Quote":
+    def call(cls, profile_id: int, source_currency: str, target_currency: str, target_amount: float) -> "Quote":
         parameters: Dict[str, Any] = {
             "profile": profile_id,
             "sourceCurrency": source_currency,
             "targetCurrency": target_currency,
             "targetAmount": target_amount,
-            "targetAccount": target_account_id,
             "payOut": "BALANCE"
         }
-        response: Response = http_requests.post(cls.endpoint, parameters=parameters, headers=constants.HEADERS)
+        response: Response = http_requests.post(cls.endpoint.replace("{profile_id}", str(profile_id)), parameters=parameters, headers=constants.HEADERS)
         return common.get_model_from_response(response, cls)  # type: ignore
 
 
@@ -407,4 +406,75 @@ class Fund(ResponseObject):
     @classmethod
     def call(cls, profile_id: int, transfer_id: int) -> "Fund":
         response: Response = http_requests.post(cls.endpoint.replace("{profile_id}", str(profile_id)).replace("{transfer_id}", str(transfer_id)), parameters={"type": "BALANCE"}, headers=constants.HEADERS)
+        return common.get_model_from_response(response, cls)  # type: ignore
+
+
+@dataclass
+class SourceAmount:
+    value: Optional[float] = None
+    currency: Optional[str] = None
+
+
+@dataclass
+class BalancesAfter:
+    id: Optional[int] = None
+    value: Optional[float] = None
+    currency: Optional[str] = None
+    cashAmount: Optional[SourceAmount] = None
+    availableAmount: Optional[SourceAmount] = None
+    totalWorth: Optional[SourceAmount] = None
+
+
+@dataclass
+class Step:
+    tracingReferenceCode: None
+    channelReferenceId: Optional[str] = None
+    id: Optional[int] = None
+    transactionId: Optional[int] = None
+    type: Optional[str] = None
+    creationTime: Optional[str] = None
+    balancesAfter: Optional[List[SourceAmount]] = None
+    channelName: Optional[str] = None
+    sourceBalanceId: Optional[int] = None
+    targetBalanceId: Optional[int] = None
+    sourceAmount: Optional[SourceAmount] = None
+    targetAmount: Optional[SourceAmount] = None
+    fee: Optional[SourceAmount] = None
+    rate: Optional[float] = None
+
+
+@dataclass
+class IntraAccountTransfer(ResponseObject):
+    channelReferenceId: Optional[str] = None
+    id: Optional[int] = None
+    type: Optional[str] = None
+    state: Optional[str] = None
+    accountId: Optional[int] = None
+    channelName: Optional[str] = None
+    balancesAfter: Optional[List[BalancesAfter]] = None
+    creationTime: Optional[str] = None
+    steps: Optional[List[Step]] = None
+    sourceAmount: Optional[SourceAmount] = None
+    targetAmount: Optional[SourceAmount] = None
+    rate: Optional[float] = None
+    feeAmounts: Optional[List[SourceAmount]] = None
+    endpoint: str = constants.ENDPOINT_INTRA_ACCOUNT_TRANSFER
+
+    @classmethod
+    def call(cls, profile_id: int, source_balance_id: int, target_balance_id: int, amount: float, quote_id: str, currency: str) -> "IntraAccountTransfer":
+        parameters: Dict[str, Any] = {
+            "profileId": profile_id,
+            "sourceBalanceId": source_balance_id,
+            "targetBalanceId": target_balance_id,
+        }
+
+        if quote_id is None:
+            parameters["amount"] = {"value": amount, "currency": currency}
+        else:
+            parameters["quoteId"] = quote_id
+
+        headers = constants.HEADERS.copy()
+        headers["X-idempotence-uuid"] = str(uuid.uuid4())
+
+        response: Response = http_requests.post(cls.endpoint.replace("{profile_id}", str(profile_id)), parameters=parameters, headers=headers)
         return common.get_model_from_response(response, cls)  # type: ignore
