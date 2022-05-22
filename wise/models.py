@@ -5,7 +5,7 @@ from typing import List, Optional
 
 import communication.telegram
 import global_common
-from finance_database.exceptions import InsufficientFundsException, BalanceForCurrencyNotFoundException
+from finance_database.exceptions import InsufficientFundsException, AccountForCurrencyNotFoundException
 from http_requests import ClientErrorException
 from logger import logger
 from wise import wise_models
@@ -15,6 +15,11 @@ from wise.exceptions import MultipleUserProfilesWithSameTypeException, MultipleR
 class ProfileTypes(enum.Enum):
     PERSONAL: str = "personal"
     BUSINESS: str = "business"
+
+
+class AccountType(enum.Enum):
+    CashAccount: str = "STANDARD"
+    ReserveAccount: str = "SAVINGS"
 
 
 @dataclass
@@ -48,50 +53,92 @@ class UserProfile:
 
 
 @dataclass
-class AccountBalance:
-    currency: global_common.Currency
-    balance: Decimal
-    reserved_amount: Decimal
-
-    def __init__(self, wise_balance: wise_models.Balance):
-        self.currency = global_common.get_enum_from_value(wise_balance.currency, global_common.Currency)
-        self.balance = Decimal(str(wise_balance.amount.value))
-        self.reserved_amount = Decimal(str(wise_balance.reservedAmount.value))
-
-    @classmethod
-    def get_by_currency_and_profile_type(cls, currency: global_common.Currency, profile_type: ProfileTypes) -> "AccountBalance":
-        for balance in Account.get_by_profile_type(profile_type)[0].balances_list:
-            if balance.currency == currency:
-                return balance
-        raise BalanceForCurrencyNotFoundException()
-
-@dataclass
 class Account:
     id: int
-    profile_id: int
-    recipient_id: int
-    is_active: bool
-    balances_list: List[AccountBalance]
+    currency: global_common.Currency
+    balance: Decimal
+    type: AccountType
+    name: str
 
     def __init__(self, wise_account: wise_models.Account):
         self.id = wise_account.id
-        self.profile_id = wise_account.profileId
-        self.recipient_id = wise_account.recipientId
-        self.is_active = wise_account.active
-
-        self.balances_list = []
-        for wise_balance in wise_account.balances:
-            self.balances_list.append(AccountBalance(wise_balance))
+        self.currency = global_common.get_enum_from_value(wise_account.currency, global_common.Currency)
+        self.balance = Decimal(str(wise_account.cashAmount.value))
+        self.type = global_common.get_enum_from_value(wise_account.type, AccountType)
 
     @classmethod
-    def get_by_profile_type(cls, profile_type: ProfileTypes) -> List["Account"]:
+    def get_all_by_profile_type(cls, profile_type: ProfileTypes) -> List["Account"]:
         user_profile: UserProfile = UserProfile.get_by_profile_type(profile_type)
         accounts_list: List[Account] = []
 
         for wise_account in wise_models.Account.call(user_profile.id):
-            accounts_list.append(Account(wise_account))
+            account_type: AccountType = global_common.get_enum_from_value(wise_account.type, AccountType)
+            if account_type == AccountType.CashAccount:
+                accounts_list.append(CashAccount(wise_account))
+            elif account_type == AccountType.ReserveAccount:
+                accounts_list.append(ReserveAccount(wise_account))
 
         return accounts_list
+
+    @classmethod
+    def get_by_profile_type_and_currency(cls, profile_type: ProfileTypes, currency: global_common.Currency) -> "Account":
+        all_accounts_list: List[Account] = Account.get_all_by_profile_type(profile_type)
+        for account in all_accounts_list:
+            if account.currency == currency:
+                return account
+        raise AccountForCurrencyNotFoundException()
+
+
+@dataclass
+class ReserveAccount(Account):
+    name: str
+
+    def __init__(self, wise_account: wise_models.Account):
+        super().__init__(wise_account)
+        self.name = wise_account.name
+
+    @classmethod
+    def get_all_by_profile_type(cls, profile_type: ProfileTypes) -> List["ReserveAccount"]:  # type: ignore
+        all_accounts: List[Account] = super().get_all_by_profile_type(profile_type)
+        all_cash_accounts: List[ReserveAccount] = []
+
+        for account in all_accounts:
+            if isinstance(account, ReserveAccount):
+                all_cash_accounts.append(account)
+        return all_cash_accounts
+
+    @classmethod
+    def get_by_profile_type_and_currency(cls, profile_type: ProfileTypes, currency: global_common.Currency) -> "ReserveAccount":
+        all_accounts_list: List[ReserveAccount] = ReserveAccount.get_all_by_profile_type(profile_type)
+        for account in all_accounts_list:
+            if account.currency == currency:
+                return account
+        raise AccountForCurrencyNotFoundException()
+
+
+@dataclass
+class CashAccount(Account):
+
+    def __init__(self, wise_account: wise_models.Account):
+        super().__init__(wise_account)
+
+    @classmethod
+    def get_all_by_profile_type(cls, profile_type: ProfileTypes) -> List["CashAccount"]:  # type: ignore
+        all_accounts: List[Account] = super().get_all_by_profile_type(profile_type)
+        all_cash_accounts: List[CashAccount] = []
+
+        for account in all_accounts:
+            if isinstance(account, CashAccount):
+                all_cash_accounts.append(account)
+        return all_cash_accounts
+
+    @classmethod
+    def get_by_profile_type_and_currency(cls, profile_type: ProfileTypes, currency: global_common.Currency) -> "CashAccount":
+        all_accounts_list: List[CashAccount] = CashAccount.get_all_by_profile_type(profile_type)
+        for account in all_accounts_list:
+            if account.currency == currency:
+                return account
+        raise AccountForCurrencyNotFoundException()
 
 
 @dataclass
@@ -178,12 +225,12 @@ class Transfer:
 
         try:
             if from_currency == to_currency:
-                account_balance: AccountBalance = AccountBalance.get_by_currency_and_profile_type(from_currency, profile_type)
-                if account_balance.balance < receiving_amount:
+                cash_account: CashAccount = CashAccount.get_by_profile_type_and_currency(profile_type, from_currency)
+                if cash_account.balance < receiving_amount:
                     raise InsufficientFundsException(f"Insufficient funds"
                                                      f"\nRequired amount: {from_currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount)}"
-                                                     f"\nAccount Balance: {from_currency.value} {global_common.get_formatted_string_from_decimal(account_balance.balance)}"
-                                                     f"\nShort of: {from_currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount - account_balance.balance)}")
+                                                     f"\nAccount Balance: {from_currency.value} {global_common.get_formatted_string_from_decimal(cash_account.balance)}"
+                                                     f"\nShort of: {from_currency.value} {global_common.get_formatted_string_from_decimal(receiving_amount - cash_account.balance)}")
 
             user_profile: UserProfile = UserProfile.get_by_profile_type(profile_type)
             wise_quote: wise_models.Quote = wise_models.Quote.call(user_profile.id, from_currency.value, to_currency.value, float(receiving_amount), recipient.account_id)

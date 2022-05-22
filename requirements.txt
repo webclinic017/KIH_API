@@ -8,3 +8,4 @@ ibapi
 dataclass-csv
 validators
 openpyxl
+dacite

@@ -47,11 +47,7 @@ class UserProfiles(ResponseObject):
     @classmethod
     def call(cls) -> List["UserProfiles"]:
         response: Response = http_requests.get(cls.endpoint, headers=constants.HEADERS)
-        user_profile_list: List[UserProfiles] = common.get_model_from_response(response, cls)  # type: ignore
-        for user_profile in user_profile_list:
-            user_profile.details = UserProfileDetails(**user_profile.details)  # type: ignore
-
-        return user_profile_list
+        return common.get_model_from_response(response, cls)  # type: ignore
 
 
 @dataclass
@@ -84,12 +80,20 @@ class BankDetails:
 
 @dataclass
 class Balance:
+    name: Optional[str] = None
+    icon: Optional[Dict] = None
     id: Optional[int] = None
-    balanceType: Optional[str] = None
     currency: Optional[str] = None
     amount: Optional[Amount] = None
     reservedAmount: Optional[Amount] = None
-    bankDetails: Optional[BankDetails] = None
+    cashAmount: Optional[Amount] = None
+    totalWorth: Optional[Amount] = None
+    type: Optional[str] = None
+    investmentState: Optional[str] = None
+    creationTime: Optional[str] = None
+    modificationTime: Optional[str] = None
+    visible: Optional[bool] = None
+    primary: Optional[bool] = None
 
     def __init__(self, id: int, balanceType: str, currency: str, amount: str, reservedAmount: Dict[str, Any], bankDetails: Dict[str, Any]):
         self.id = id
@@ -101,28 +105,33 @@ class Balance:
 
 @dataclass
 class Account(ResponseObject):
+    name: Optional[str] = None
+    icon: Optional[Dict] = None
     id: Optional[int] = None
-    profileId: Optional[int] = None
-    recipientId: Optional[int] = None
-    creationTime: Optional[datetime] = None
-    modificationTime: Optional[datetime] = None
-    active: Optional[bool] = None
-    eligible: Optional[bool] = None
-    balances: Optional[List[Balance]] = None
+    currency: Optional[str] = None
+    amount: Optional[Amount] = None
+    reservedAmount: Optional[Amount] = None
+    cashAmount: Optional[Amount] = None
+    totalWorth: Optional[Amount] = None
+    type: Optional[str] = None
+    investmentState: Optional[str] = None
+    creationTime: Optional[str] = None
+    modificationTime: Optional[str] = None
+    visible: Optional[bool] = None
+    primary: Optional[bool] = None
     endpoint: str = constants.ENDPOINT_ACCOUNTS
 
     @classmethod
     def call(cls, profile_id: int) -> List["Account"]:
-        response: Response = http_requests.get(cls.endpoint.replace("{profile_id}", str(profile_id)), headers=constants.HEADERS)
-        accounts_list: List[Account] = common.get_model_from_response(response, cls)  # type: ignore
+        from wise.models import AccountType
 
-        for account in accounts_list:
-            balances_list: List[Balance] = []
-            for balance in account.balances:
-                balances_list.append(Balance(**balance))  # type: ignore
-            account.balances = balances_list
+        response: Response = http_requests.get(cls.endpoint.replace("{profile_id}", str(profile_id)).replace("{account_type}", AccountType.CashAccount.value), headers=constants.HEADERS)
+        all_accounts_list: List[Account] = common.get_model_from_response(response, cls)  # type: ignore
 
-        return accounts_list
+        response = http_requests.get(cls.endpoint.replace("{profile_id}", str(profile_id)).replace("{account_type}", AccountType.ReserveAccount.value), headers=constants.HEADERS)
+        all_accounts_list.extend(common.get_model_from_response(response, cls))  # type: ignore
+
+        return all_accounts_list
 
 
 @dataclass
@@ -368,11 +377,7 @@ class Recipient(ResponseObject):
     @classmethod
     def call(cls, profile_id: int) -> List["Recipient"]:
         response: Response = http_requests.get(cls.endpoint.replace("{profile_id}", str(profile_id)), headers=constants.HEADERS)
-        recipient_list: List[Recipient] = common.get_model_from_response(response, cls)  # type: ignore
-        for recipient in recipient_list:
-            recipient.details = RecipientDetails(**recipient.details)  # type: ignore
-
-        return recipient_list
+        return common.get_model_from_response(response, cls)  # type: ignore
 
 
 @dataclass

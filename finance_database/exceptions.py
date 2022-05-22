@@ -9,7 +9,7 @@ class ExcelFileOpenedByAnotherApplication(CustomException):
     pass
 
 
-class BalanceForCurrencyNotFoundException(CustomException):
+class AccountForCurrencyNotFoundException(CustomException):
     pass
 
 
