@@ -4,6 +4,7 @@ from typing import Optional, List, Dict, Any
 
 from requests import Response
 
+import global_common
 import http_requests
 from http_requests import common
 from http_requests.models import ResponseObject
@@ -118,6 +119,7 @@ class Account(ResponseObject):
     visible: Optional[bool] = None
     primary: Optional[bool] = None
     endpoint: str = constants.ENDPOINT_ACCOUNTS
+    endpoint_create_account: str = constants.ENDPOINT_CREATE_ACCOUNT
 
     @classmethod
     def call(cls, profile_id: int) -> List["Account"]:
@@ -130,6 +132,20 @@ class Account(ResponseObject):
         all_accounts_list.extend(common.get_model_from_response(response, cls))  # type: ignore
 
         return all_accounts_list
+
+    @classmethod
+    def create_reserve_account(cls, name: str, currency: global_common.Currency, profile_id: int) -> None:
+        from wise.models import AccountType
+
+        parameters: Dict[str, Any] = {
+            "currency": currency.value,
+            "type": AccountType.ReserveAccount.value,
+            "name": name
+        }
+
+        headers = constants.HEADERS.copy()
+        headers["X-idempotence-uuid"] = str(uuid.uuid4())
+        http_requests.post(cls.endpoint_create_account.replace("{profile_id}", str(profile_id)), parameters=parameters, headers=headers)
 
 
 @dataclass
@@ -187,6 +203,7 @@ class Transfer(ResponseObject):
             "customerTransactionId": str(uuid.uuid4()),
             "details": {"reference": reference}
         }
+
         response: Response = http_requests.post(cls.endpoint, parameters=parameters, headers=constants.HEADERS)
         return common.get_model_from_response(response, cls)  # type: ignore
 

@@ -9,7 +9,7 @@ from finance_database.exceptions import InsufficientFundsException, AccountForCu
 from http_requests import ClientErrorException
 from logger import logger
 from wise import wise_models
-from wise.exceptions import MultipleUserProfilesWithSameTypeException, MultipleRecipientsWithSameAccountNumberException, TransferringMoneyToNonSelfOwnedAccountsException
+from wise.exceptions import MultipleUserProfilesWithSameTypeException, MultipleRecipientsWithSameAccountNumberException, TransferringMoneyToNonSelfOwnedAccountsException, ReserveAccountNotFound
 
 
 class ProfileTypes(enum.Enum):
@@ -108,12 +108,35 @@ class ReserveAccount(Account):
         return all_cash_accounts
 
     @classmethod
-    def get_by_profile_type_and_currency(cls, profile_type: ProfileTypes, currency: global_common.Currency) -> "ReserveAccount":
+    def get_by_profile_type_and_currency(cls, profile_type: ProfileTypes, currency: global_common.Currency) -> List["ReserveAccount"]:  # type: ignore
         all_accounts_list: List[ReserveAccount] = ReserveAccount.get_all_by_profile_type(profile_type)
+        reserve_account_list: List[ReserveAccount] = []
         for account in all_accounts_list:
             if account.currency == currency:
-                return account
-        raise AccountForCurrencyNotFoundException()
+                reserve_account_list.append(account)
+        return reserve_account_list
+
+    @classmethod
+    def get_reserve_account_by_profile_type_currency_and_name(cls, profile_type: ProfileTypes, currency: global_common.Currency, name: str, create_if_unavailable: bool = False) -> "ReserveAccount":
+        all_reserve_accounts_list: List[ReserveAccount] = ReserveAccount.get_by_profile_type_and_currency(profile_type, currency)
+        for reserve_account in all_reserve_accounts_list:
+            if reserve_account.name == name:
+                return reserve_account
+        if create_if_unavailable:
+            return ReserveAccount.create_reserve_account(name, currency, profile_type, False)
+        else:
+            raise ReserveAccountNotFound()
+
+    @classmethod
+    def create_reserve_account(cls, name: str, currency: global_common.Currency, profile_type: ProfileTypes, check_if_available_before_creation: bool = True) -> "ReserveAccount":
+        if check_if_available_before_creation:
+            try:
+                return ReserveAccount.get_reserve_account_by_profile_type_currency_and_name(profile_type, currency, name)
+            except ReserveAccountNotFound:
+                pass
+
+        wise_models.Account.create_reserve_account(name, currency, UserProfile.get_by_profile_type(profile_type).id)
+        return ReserveAccount.get_reserve_account_by_profile_type_currency_and_name(profile_type, currency, name)
 
 
 @dataclass

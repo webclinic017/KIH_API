@@ -11,3 +11,7 @@ class MultipleRecipientsWithSameAccountNumberException(CustomException):
 
 class TransferringMoneyToNonSelfOwnedAccountsException(CustomException):
     pass
+
+
+class ReserveAccountNotFound(CustomException):
+    pass
