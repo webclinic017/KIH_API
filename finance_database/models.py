@@ -132,16 +132,17 @@ class MonthlyExpenseReport:
     def assert_accuracy(self, excel_data: ExcelData) -> None:
         summary: Summary = Summary(excel_data)
         fixed_expenses: FixedExpenses = FixedExpenses(excel_data)
+        reserve: Reserve = Reserve(excel_data)
 
         if self.needs < 0:
             assert summary.salary == self.wants + self.savings + fixed_expenses.needs_expenses.total + \
-                   fixed_expenses.wants_expenses.total
+                   fixed_expenses.wants_expenses.total + reserve.needs_reserve.total + reserve.wants_reserve.total
         elif self.wants < 0:
             assert summary.salary == self.needs + self.savings + fixed_expenses.needs_expenses.total + \
-                   fixed_expenses.wants_expenses.total
+                   fixed_expenses.wants_expenses.total + reserve.needs_reserve.total + reserve.wants_reserve.total
         else:
             assert summary.salary == self.needs + self.wants + self.savings + fixed_expenses.needs_expenses.total + \
-                   fixed_expenses.wants_expenses.total
+                   fixed_expenses.wants_expenses.total + reserve.needs_reserve.total + reserve.wants_reserve.total
 
 
 class NeedsExpenses:
@@ -210,6 +211,7 @@ class Transfers:
     needs: Transfer
     wants: Transfer
     savings: Transfer
+    reserve: Transfer
 
     def __init__(self, excel_data: ExcelData, settings: Settings):
         data: Dict[str, Any] = excel_data.get_data_set("Transfers")
@@ -232,7 +234,20 @@ class Transfers:
                     self.wants = Transfer(bank_account, "Wants", Decimal(0), settings.get(bank_account + " Account Number"))
             elif item_number == 4:
                 self.savings = Transfer(bank_account, "Savings", amount, settings.get(bank_account + " Account Number"))
+            elif item_number == 5:
+                self.reserve = Transfer(bank_account, "Reserve", amount, settings.get(bank_account + " Account Number"))
             item_number = item_number + 1
 
         assert Summary(
-            excel_data).salary == self.finance_hub.amount + self.needs.amount + self.wants.amount + self.savings.amount
+            excel_data).salary == self.finance_hub.amount + self.needs.amount + self.wants.amount + self.savings.amount + self.reserve.amount
+
+
+class Reserve:
+    header: str = "Reserve"
+    needs_reserve: NeedsExpenses
+    wants_reserve: WantsExpenses
+
+    def __init__(self, excel_data: ExcelData):
+        reserve_data: ExcelData = excel_data.get_data_sub_set(self.header, 2)
+        self.needs_reserve = NeedsExpenses(reserve_data.get_data_set("Needs"))
+        self.wants_reserve = WantsExpenses(reserve_data.get_data_set("Wants"))
