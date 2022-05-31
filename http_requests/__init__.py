@@ -11,7 +11,7 @@ from http_requests.models import MethodType
 from logger import logger
 
 is_ssl_certificate_verification_used: bool = True
-urllib3.disable_warnings()
+urllib3.disable_warnings()  # type: ignore
 
 
 class ServerErrorException(CustomException):

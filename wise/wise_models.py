@@ -94,11 +94,11 @@ class Balance:
     visible: Optional[bool] = None
     primary: Optional[bool] = None
 
-    def __init__(self, id: int, balanceType: str, currency: str, amount: str, reservedAmount: Dict[str, Any], bankDetails: Dict[str, Any]):
+    def __init__(self, id: int, balanceType: str, currency: str, amount: Dict, reservedAmount: Dict[str, Any], bankDetails: Dict[str, Any]):
         self.id = id
         self.balanceType = balanceType
         self.currency = currency
-        self.amount = Amount(**amount)  # type: ignore
+        self.amount = Amount(**amount)
         self.reservedAmount = Amount(**reservedAmount)
 
 
