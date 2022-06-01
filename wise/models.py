@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import enum
 from dataclasses import dataclass
 from decimal import Decimal
@@ -67,9 +69,9 @@ class Account:
         self.type = global_common.get_enum_from_value(wise_account.type, AccountType)
 
     @classmethod
-    def get_all_by_profile_type(cls, profile_type: ProfileTypes) -> List["Account"]:
+    def get_all_by_profile_type(cls, profile_type: ProfileTypes) -> List["CashAccount" | "ReserveAccount"]:
         user_profile: UserProfile = UserProfile.get_by_profile_type(profile_type)
-        accounts_list: List[Account] = []
+        accounts_list: List["CashAccount" | "ReserveAccount"] = []
 
         for wise_account in wise_models.Account.call(user_profile.id):
             account_type: AccountType = global_common.get_enum_from_value(wise_account.type, AccountType)
@@ -81,8 +83,8 @@ class Account:
         return accounts_list
 
     @classmethod
-    def get_by_profile_type_and_currency(cls, profile_type: ProfileTypes, currency: global_common.Currency) -> "Account":
-        all_accounts_list: List[Account] = Account.get_all_by_profile_type(profile_type)
+    def get_by_profile_type_and_currency(cls, profile_type: ProfileTypes, currency: global_common.Currency) -> "CashAccount" | "ReserveAccount":
+        all_accounts_list: List["CashAccount" | "ReserveAccount"] = Account.get_all_by_profile_type(profile_type)
         for account in all_accounts_list:
             if account.currency == currency:
                 return account
@@ -99,7 +101,7 @@ class ReserveAccount(Account):
 
     @classmethod
     def get_all_by_profile_type(cls, profile_type: ProfileTypes) -> List["ReserveAccount"]:  # type: ignore
-        all_accounts: List[Account] = super().get_all_by_profile_type(profile_type)
+        all_accounts: List["CashAccount" | "ReserveAccount"] = super().get_all_by_profile_type(profile_type)
         all_cash_accounts: List[ReserveAccount] = []
 
         for account in all_accounts:
@@ -147,7 +149,7 @@ class CashAccount(Account):
 
     @classmethod
     def get_all_by_profile_type(cls, profile_type: ProfileTypes) -> List["CashAccount"]:  # type: ignore
-        all_accounts: List[Account] = super().get_all_by_profile_type(profile_type)
+        all_accounts: List["CashAccount" | "ReserveAccount"] = super().get_all_by_profile_type(profile_type)
         all_cash_accounts: List[CashAccount] = []
 
         for account in all_accounts:
