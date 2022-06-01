@@ -318,6 +318,7 @@ class IntraAccountTransfer:
         self.exchange_rate = ExchangeRate(Decimal(str(intra_account_transfer.rate)), self.from_currency, self.to_currency)
         self.is_successful = intra_account_transfer.state == "COMPLETED"
 
+    # TODO: Implement withdrawal from reserve accounts
     @classmethod
     def execute(cls, receiving_amount: Decimal, from_currency: global_common.Currency, to_account: Union[CashAccount, ReserveAccount], profile_type: ProfileTypes) -> "IntraAccountTransfer":
         user_profile: UserProfile = UserProfile.get_by_profile_type(profile_type)
