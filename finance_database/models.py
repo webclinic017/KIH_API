@@ -117,15 +117,21 @@ class Summary:
 
 class MonthlyExpenseReport:
     header: str = "Monthly Expense Report"
+    fixed_expenses: Decimal
+    reserve: Decimal
     needs: Decimal
     wants: Decimal
     savings: Decimal
+    extra_savings: Decimal
 
     def __init__(self, excel_data: ExcelData):
         monthly_expense_report_data: Dict[str, Decimal] = excel_data.get_data_set(self.header)
+        self.fixed_expenses = monthly_expense_report_data["Total Fixed Expenses"]
+        self.reserve = monthly_expense_report_data["Total Reserve"]
         self.needs = monthly_expense_report_data["Needs"]
         self.wants = monthly_expense_report_data["Wants"]
         self.savings = monthly_expense_report_data["Savings"]
+        self.extra_savings = monthly_expense_report_data["Extra Savings"]
 
         self.assert_accuracy(excel_data)
 
@@ -134,15 +140,9 @@ class MonthlyExpenseReport:
         fixed_expenses: FixedExpenses = FixedExpenses(excel_data)
         reserve: Reserve = Reserve(excel_data)
 
-        if self.needs < 0:
-            assert summary.salary == self.wants + self.savings + fixed_expenses.needs_expenses.total + \
-                   fixed_expenses.wants_expenses.total + reserve.needs_reserve.total + reserve.wants_reserve.total
-        elif self.wants < 0:
-            assert summary.salary == self.needs + self.savings + fixed_expenses.needs_expenses.total + \
-                   fixed_expenses.wants_expenses.total + reserve.needs_reserve.total + reserve.wants_reserve.total
-        else:
-            assert summary.salary == self.needs + self.wants + self.savings + fixed_expenses.needs_expenses.total + \
-                   fixed_expenses.wants_expenses.total + reserve.needs_reserve.total + reserve.wants_reserve.total
+        assert self.fixed_expenses == fixed_expenses.total
+        assert self.reserve == reserve.total
+        assert summary.salary == max(self.needs, Decimal("0")) + max(self.wants, Decimal("0")) + self.fixed_expenses + reserve.total + self.savings
 
 
 class NeedsExpenses:
@@ -175,11 +175,13 @@ class FixedExpenses:
     header: str = "Fixed Expenses"
     needs_expenses: NeedsExpenses
     wants_expenses: WantsExpenses
+    total: Decimal
 
     def __init__(self, excel_data: ExcelData):
         fixed_expenses_data: ExcelData = excel_data.get_data_sub_set(self.header, 2)
         self.needs_expenses = NeedsExpenses(fixed_expenses_data.get_data_set("Needs"))
         self.wants_expenses = WantsExpenses(fixed_expenses_data.get_data_set("Wants"))
+        self.total = self.needs_expenses.total + self.wants_expenses.total
 
 
 class Settings:
@@ -246,8 +248,10 @@ class Reserve:
     header: str = "Reserve"
     needs_reserve: NeedsExpenses
     wants_reserve: WantsExpenses
+    total: Decimal
 
     def __init__(self, excel_data: ExcelData):
         reserve_data: ExcelData = excel_data.get_data_sub_set(self.header, 2)
         self.needs_reserve = NeedsExpenses(reserve_data.get_data_set("Needs"))
         self.wants_reserve = WantsExpenses(reserve_data.get_data_set("Wants"))
+        self.total = self.needs_reserve.total + self.wants_reserve.total
