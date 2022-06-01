@@ -61,12 +61,14 @@ class Account:
     balance: Decimal
     type: AccountType
     name: str
+    profile_type: ProfileTypes
 
     def __init__(self, wise_account: wise_models.Account):
         self.id = wise_account.id
         self.currency = global_common.get_enum_from_value(wise_account.currency, global_common.Currency)
         self.balance = Decimal(str(wise_account.cashAmount.value))
         self.type = global_common.get_enum_from_value(wise_account.type, AccountType)
+        self.profile_type = global_common.get_enum_from_value(wise_account.type, AccountType)
 
     @classmethod
     def get_all_by_profile_type(cls, profile_type: ProfileTypes) -> List["CashAccount" | "ReserveAccount"]:
