@@ -24,9 +24,12 @@ class IPAddressInfo(ResponseObject):
     isp: Optional[str] = None
     org: Optional[str] = None
     ip_address_info_as: Optional[str] = None
+    google_maps_link: Optional[str] = None
     endpoint: str = constants.IP_ADDRESS_INFO_ENDPOINT
 
     @classmethod
     def get(cls, ip_address: str) -> "IPAddressInfo":
         response: Response = http_requests.get(cls.endpoint + ip_address)
-        return http_requests.common.get_model_from_response(response, cls)  # type: ignore
+        ip_address_info: IPAddressInfo = http_requests.common.get_model_from_response(response, cls)  # type: ignore
+        ip_address_info.google_maps_link = f"https://maps.google.com/?q={ip_address_info.lat},{ip_address_info.lon}"
+        return ip_address_info
