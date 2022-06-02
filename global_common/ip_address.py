@@ -23,7 +23,6 @@ class IPAddressInfo(ResponseObject):
     timezone: Optional[str] = None
     isp: Optional[str] = None
     org: Optional[str] = None
-    ip_address_info_as: Optional[str] = None
     google_maps_link: Optional[str] = None
     endpoint: str = constants.IP_ADDRESS_INFO_ENDPOINT
 
