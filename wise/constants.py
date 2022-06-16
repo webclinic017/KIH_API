@@ -1,6 +1,7 @@
+import os
 from typing import Dict
 
-API_KEY: str = "9df360a6-f381-450b-a4ae-c2b333179d09"
+API_KEY: str = os.getenv("TRANSFER_WISE_API_KEY")
 HEADERS: Dict[str, str] = {"Authorization": f"Bearer {API_KEY}"}
 ENDPOINT_BASE_SANDBOX: str = "https://api.sandbox.transferwise.tech/"
 ENDPOINT_BASE_LIVE: str = "https://api.transferwise.com/"
