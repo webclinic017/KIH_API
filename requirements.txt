@@ -5,7 +5,7 @@ python-dateutil
 pandas
 numpy
 ibapi
-dataclass-csv
 validators
-openpyxl
 dacite
+mongoengine
+pymongo
