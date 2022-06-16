@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Dict, Tuple
 
 from mongoengine import Document, StringField, DateTimeField
 
@@ -15,11 +16,11 @@ class DatabaseDocument(Document):
     meta = {"abstract": True,
             "indexes": ["modified_time"]}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.to_json()
 
     @timed
-    def save(self, *args, **kwargs) -> None:
+    def save(self, *args: Tuple, **kwargs: Dict) -> None:
         self.modified_time = datetime.utcnow()
         super().save()
 
