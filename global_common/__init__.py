@@ -3,6 +3,7 @@ import inspect
 import os
 import subprocess
 import threading
+import time
 from decimal import Decimal
 from typing import Any, Dict, Type, Optional, List, Union, Callable
 
@@ -141,3 +142,20 @@ def create_csv(data_class_list: List[Any], location: str) -> None:
     with open(location, "w", newline="\n") as f:
         w = DataclassWriter(f, data_class_list, type(data_class_list[0]))
         w.write()
+
+
+def timed(func: Callable) -> Callable:
+    def wrapper(*args: Any, **kwargs: Any) -> None:
+        start_time: Decimal = Decimal(time.time_ns())
+        func(*args, **kwargs)
+        end_time: Decimal = Decimal(time.time_ns())
+        logger.debug(
+            f"\n---------------------------------------------------------------------------------------------------"
+            f"\nFunction: {func.__name__}"
+            f"\nArguments: {args}"
+            f"\nKey word arguments: {kwargs}"
+            f"\nTime taken: {get_formatted_string_from_decimal(Decimal(end_time - start_time) / Decimal('1000_0000'))}ms"
+            f"\n\t\t\t{get_formatted_string_from_decimal(Decimal(end_time - start_time) / Decimal('1000'))}ns"
+            f"\n---------------------------------------------------------------------------------------------------")
+
+    return wrapper

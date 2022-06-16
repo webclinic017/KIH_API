@@ -6,6 +6,6 @@ pandas
 numpy
 ibapi
 validators
-openpyxl
 dacite
 mongoengine
+pymongo
