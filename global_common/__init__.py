@@ -3,6 +3,7 @@ import inspect
 import os
 import subprocess
 import threading
+import time
 from decimal import Decimal
 from typing import Any, Dict, Type, Optional, List, Union, Callable
 
@@ -70,7 +71,8 @@ def run_command(command_list: List[str]) -> Union[List[str], None]:
 
     for command in command_list:
         logger.info("Running command: " + command)
-        output_list.extend(subprocess.run(command, shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n"))
+        output_list.extend(
+            subprocess.run(command, shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n"))
 
     for output in output_list:
         logger.info(output)
@@ -116,16 +118,21 @@ def job(job_name: str) -> Callable:
         def wrapper(*args: Any, **kwargs: Any) -> None:
             import communication.telegram
             try:
-                communication.telegram.send_message(communication.telegram.constants.telegram_channel_development_username, f"Running job: <i>{job_name}</i>", True)
+                communication.telegram.send_message(
+                    communication.telegram.constants.telegram_channel_development_username,
+                    f"Running job: <i>{job_name}</i>", True)
                 logger.debug(f"Running job: {job_name}")
                 func(*args, **kwargs)
                 logger.debug(f"Job ended: {job_name}")
-                communication.telegram.send_message(communication.telegram.constants.telegram_channel_development_username, f"Job ended: <i>{job_name}</i>", True)
+                communication.telegram.send_message(
+                    communication.telegram.constants.telegram_channel_development_username,
+                    f"Job ended: <i>{job_name}</i>", True)
             except Exception as e:
                 message = f"<b><u>ERROR</u></b>\n\nJob Name: <i>{job_name}</i>\nError Type: <i>{type(e).__name__}</i>"
                 if str(e) != "":
                     message = message + f"\nError Message: <i>{str(e).replace('<', '').replace('>', '')}</i>"
-                communication.telegram.send_message(communication.telegram.constants.telegram_channel_username, message, True)
+                communication.telegram.send_message(communication.telegram.constants.telegram_channel_username, message,
+                                                    True)
                 raise Exception(e)
 
         return wrapper
@@ -141,3 +148,20 @@ def create_csv(data_class_list: List[Any], location: str) -> None:
     with open(location, "w", newline="\n") as f:
         w = DataclassWriter(f, data_class_list, type(data_class_list[0]))
         w.write()
+
+
+def timed(func: Callable) -> Callable:
+    def wrapper(*args: Any, **kwargs: Any) -> None:
+        start_time: Decimal = Decimal(time.time_ns())
+        func(*args, **kwargs)
+        end_time: Decimal = Decimal(time.time_ns())
+        logger.debug(
+            f"\n---------------------------------------------------------------------------------------------------"
+            f"\nFunction: {func.__name__}"
+            f"\nArguments: {args}"
+            f"\nKey word arguments: {kwargs}"
+            f"\nTime taken: {get_formatted_string_from_decimal(Decimal(end_time - start_time) / Decimal('1000_0000'))}ms"
+            f"\n\t\t\t{get_formatted_string_from_decimal(Decimal(end_time - start_time) / Decimal('1000'))}ns"
+            f"\n---------------------------------------------------------------------------------------------------")
+
+    return wrapper
