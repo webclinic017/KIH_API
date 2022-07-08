@@ -151,9 +151,9 @@ def create_csv(data_class_list: List[Any], location: str) -> None:
 
 
 def timed(func: Callable) -> Callable:
-    def wrapper(*args: Any, **kwargs: Any) -> None:
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         start_time: Decimal = Decimal(time.time_ns())
-        func(*args, **kwargs)
+        return_data: Any = func(*args, **kwargs)
         end_time: Decimal = Decimal(time.time_ns())
         logger.debug(
             f"\n---------------------------------------------------------------------------------------------------"
@@ -163,5 +163,6 @@ def timed(func: Callable) -> Callable:
             f"\nTime taken: {get_formatted_string_from_decimal(Decimal(end_time - start_time) / Decimal('1000_0000'))}ms"
             f"\n\t\t\t{get_formatted_string_from_decimal(Decimal(end_time - start_time) / Decimal('1000'))}ns"
             f"\n---------------------------------------------------------------------------------------------------")
+        return return_data
 
     return wrapper
