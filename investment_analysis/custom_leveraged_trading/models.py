@@ -42,7 +42,7 @@ class InvestmentAnalysis:
         self.ending_date = self.historical_data_list[-1].timestamp
         self.historical_returns_list = InvestmentAnalysisHelper.get_leveraged_historical_data_list(starting_balance, daily_leverage, self.historical_data_list)
         self.profit = self.historical_returns_list[-1].net_liquidity - starting_balance
-        self.annual_rate_of_return = calculations.get_annual_rate_of_return(starting_balance, self.historical_returns_list[-1].net_liquidity, InvestmentAnalysisHelper.get_number_of_years(self.starting_date, self.ending_date))
+        self.annual_rate_of_return = calculations.get_annual_rate_of_return(starting_balance, self.historical_returns_list[-1].net_liquidity, calculations.get_year_frac(self.starting_date, self.ending_date))
         self.number_of_days_till_no_loss, self.lowest_net_liquidity = InvestmentAnalysisHelper.get_number_of_days_till_no_loss(self.historical_returns_list)
 
 

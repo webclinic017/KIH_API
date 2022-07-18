@@ -1,6 +1,6 @@
 import datetime
 from decimal import Decimal
-from typing import Dict, Tuple, Any, Union, List
+from typing import Dict, Tuple, Any, Union, List, Optional
 
 from bson import SON
 from mongoengine import Document, DateTimeField, EmbeddedDocument
@@ -28,7 +28,6 @@ class DatabaseDocument(Document):
         for key, value in all_data.copy().items():
             if isinstance(value, (DatabaseDocument, EmbeddedDocument, SON)):
                 all_data[key] = DatabaseDocument.get_raw_son(value)
-
             elif isinstance(value, List):
                 new_list: List[Any] = []
                 for item in value:
@@ -40,7 +39,8 @@ class DatabaseDocument(Document):
 
         return all_data
 
-    def get_primary_key_field_name(self) -> str:
+    def get_primary_key_field_name(self) -> Optional[str]:
         for field in self._fields_ordered:
             if id(getattr(self, field)) == id(self.pk):
                 return field
+        return None

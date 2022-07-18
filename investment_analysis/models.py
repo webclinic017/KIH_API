@@ -2,7 +2,7 @@ import datetime
 import statistics
 from dataclasses import dataclass, asdict
 from decimal import Decimal
-from typing import List, Any, Optional, cast, Dict, Tuple
+from typing import List, Any, Optional, cast, Dict
 
 from mongoengine import StringField, FloatField, DateTimeField, EmbeddedDocumentField, EmbeddedDocument, ListField
 
@@ -19,7 +19,7 @@ class Statistics(EmbeddedDocument):
     minimum: Decimal = FloatField(required=True)
     standard_deviation: Decimal = FloatField(required=True)
 
-    def __init__(self, *args: Tuple[Any], **kwargs: Dict[str, Any]):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.maximum = Decimal(str(self.maximum))
         self.median = Decimal(str(self.median))
@@ -49,8 +49,8 @@ class HistoricalStockPriceData(DatabaseDocument):
 
     meta = {"indexes": ["stock_symbol", "timestamp"]}
 
-    def __init__(self, *args, **values):
-        super().__init__(*args, **values)
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.open = Decimal(str(self.open))
         self.high = Decimal(str(self.high))
         self.low = Decimal(str(self.low))
@@ -126,7 +126,7 @@ class NumberOfYearsTillPerpetualProfit(DatabaseDocument):
         for historical_data in historical_stock_price_data:
             profit_historical_data_list: List[HistoricalStockPriceData] = list(filter(lambda data: data.close >= historical_data.close and data.timestamp > historical_data.timestamp, historical_stock_price_data))
 
-            date_of_no_loss: datetime = None
+            date_of_no_loss: datetime.datetime = None
 
             for profit_historical_data in profit_historical_data_list:
                 future_loss_historical_data_list: List[HistoricalStockPriceData] = list(filter(lambda data: data.close < historical_data.close and data.timestamp > profit_historical_data.timestamp, historical_stock_price_data))

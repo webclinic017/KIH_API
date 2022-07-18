@@ -15,7 +15,6 @@ import global_common
 from ibkr import constants, IBKR_API
 from ibkr.exceptions import MarketDataNotAvailableException
 from ibkr.helper import IBKR_Helper
-from ibkr_web_api.models import HistoricalData
 
 
 class OrderType(enum.Enum):
@@ -263,7 +262,7 @@ class HistoricalData:
         self.timestamp = datetime.datetime.strptime(bar_data.date, format_str)
 
     @staticmethod
-    def get_from_date(historical_data_list: List[HistoricalData], date: datetime, is_get_next_date_if_unavailable: bool = True) -> Optional[HistoricalData]:
+    def get_from_date(historical_data_list: List[HistoricalData], date: datetime.datetime, is_get_next_date_if_unavailable: bool = True) -> Optional[HistoricalData]:
         end_date_filter: datetime.datetime = date + datetime.timedelta(days=5 if is_get_next_date_if_unavailable else 0)
         filtered_historical_data_list: List[HistoricalData] = list(filter(lambda data: date <= data.timestamp <= end_date_filter, historical_data_list))
         sorted_historical_data_list: List[HistoricalData] = sorted(filtered_historical_data_list, key=lambda data: data.timestamp)

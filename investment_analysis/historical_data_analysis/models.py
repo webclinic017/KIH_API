@@ -68,3 +68,6 @@ class StockAnalysis:
         start_time = time.time_ns()
         self.number_of_years_till_perpetual_profit = NumberOfYearsTillPerpetualProfit.get_from_historical_stock_price_data_list(self.historical_data_list, True)
         print(f"Time taken: {(time.time_ns() - start_time) / 1_000_000_000 / 60} minutes")
+
+
+test = StockAnalysis("TQQQ", "2010-01-01", "2023-01-01", 3)
