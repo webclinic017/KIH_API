@@ -1,7 +1,9 @@
-from datetime import datetime
-from typing import Dict, Tuple
+import datetime
+from decimal import Decimal
+from typing import Dict, Tuple, Any, Union, List
 
-from mongoengine import Document, StringField, DateTimeField
+from bson import SON
+from mongoengine import Document, DateTimeField, EmbeddedDocument
 
 import database
 from global_common import timed
@@ -10,19 +12,35 @@ database.connect_to_database()
 
 
 class DatabaseDocument(Document):
-    modified_time: datetime = DateTimeField(default=datetime.utcnow)
+    modified_time: datetime.datetime = DateTimeField(default=datetime.datetime.utcnow)
 
     meta: Dict[str, Any] = {"abstract": True}
 
-    def __repr__(self) -> str:
-        return self.to_json()
-
     @timed
     def save(self, *args: Tuple, **kwargs: Dict) -> None:
-        self.modified_time = datetime.utcnow()
-        super().save()
+        self.modified_time = datetime.datetime.utcnow()
+        self.__class__._get_collection().update_one({"_id": self.pk}, {"$set": self.__class__.get_raw_son(self)}, upsert=True)
 
+    @staticmethod
+    def get_raw_son(data: Union["DatabaseDocument", EmbeddedDocument, SON]) -> SON:
+        all_data: SON = data.to_mongo() if isinstance(data, (DatabaseDocument, EmbeddedDocument)) else data
 
-class Person(DatabaseDocument):
-    first_name: str = StringField()
-    last_name: str = StringField()
+        for key, value in all_data.copy().items():
+            if isinstance(value, (DatabaseDocument, EmbeddedDocument, SON)):
+                all_data[key] = DatabaseDocument.get_raw_son(value)
+
+            elif isinstance(value, List):
+                new_list: List[Any] = []
+                for item in value:
+                    if isinstance(item, Decimal):
+                        new_list.append(float(item))
+                    else:
+                        new_list.append(item)
+                all_data[key] = new_list
+
+        return all_data
+
+    def get_primary_key_field_name(self) -> str:
+        for field in self._fields_ordered:
+            if id(getattr(self, field)) == id(self.pk):
+                return field

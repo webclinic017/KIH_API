@@ -3,7 +3,7 @@ import enum
 import time
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional
 
 import ibapi.common
 import ibapi.contract
@@ -15,6 +15,7 @@ import global_common
 from ibkr import constants, IBKR_API
 from ibkr.exceptions import MarketDataNotAvailableException
 from ibkr.helper import IBKR_Helper
+from ibkr_web_api.models import HistoricalData
 
 
 class OrderType(enum.Enum):
@@ -242,7 +243,7 @@ class IBKR:
 
 @dataclass
 class HistoricalData:
-    datetime: datetime.datetime
+    timestamp: datetime.datetime
     open: Decimal
     high: Decimal
     low: Decimal
@@ -259,7 +260,18 @@ class HistoricalData:
         self.volume = Decimal(str(bar_data.volume))
 
         format_str: str = "%Y%m%d" if len(bar_data.date) == 8 else "%Y%m%d %H:%M:%S"
-        self.datetime = datetime.datetime.strptime(bar_data.date, format_str)
+        self.timestamp = datetime.datetime.strptime(bar_data.date, format_str)
+
+    @staticmethod
+    def get_from_date(historical_data_list: List[HistoricalData], date: datetime, is_get_next_date_if_unavailable: bool = True) -> Optional[HistoricalData]:
+        end_date_filter: datetime.datetime = date + datetime.timedelta(days=5 if is_get_next_date_if_unavailable else 0)
+        filtered_historical_data_list: List[HistoricalData] = list(filter(lambda data: date <= data.timestamp <= end_date_filter, historical_data_list))
+        sorted_historical_data_list: List[HistoricalData] = sorted(filtered_historical_data_list, key=lambda data: data.timestamp)
+
+        if len(sorted_historical_data_list) != 0:
+            return sorted_historical_data_list[0]
+        else:
+            return None
 
 
 @dataclass

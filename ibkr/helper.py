@@ -78,10 +78,10 @@ class HistoricalDataHelper:
 
         return_historical_data: List["HistoricalData"] = []
         for historical_data in historical_data_list:
-            if starting_date <= historical_data.datetime <= ending_date:
+            if starting_date <= historical_data.timestamp <= ending_date:
                 return_historical_data.append(historical_data)
 
-        return_historical_data.sort(key=lambda x: x.datetime)
+        return_historical_data.sort(key=lambda x: x.timestamp)
         return return_historical_data
 
 

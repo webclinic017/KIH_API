@@ -1,112 +1,152 @@
+import datetime
 import statistics
-from dataclasses import dataclass
-from datetime import datetime, timedelta
+from dataclasses import dataclass, asdict
 from decimal import Decimal
-from typing import List, Union, Any
+from typing import List, Any, Optional, cast, Dict, Tuple
 
-from ibkr.helper import HistoricalDataHelper
-from ibkr.models import HistoricalData, IBKR
-from investment_analysis.helper import InvestmentAnalysisHelper
+from mongoengine import StringField, FloatField, DateTimeField, EmbeddedDocumentField, EmbeddedDocument, ListField
 
-
-@dataclass
-class HistoricalReturn:
-    date: datetime
-    number_of_shares_bought: Decimal
-    net_liquidity: Decimal
-    close: Decimal
+import ibkr.models
+from database.models import DatabaseDocument
+from investment_analysis import calculations
 
 
 @dataclass
-class InvestmentAnalysis:
-    symbol: str
-    starting_date: datetime
-    ending_date: datetime
-    raw_historical_data_list: List[HistoricalData]
-    historical_data_list: List[HistoricalData]
-    historical_returns_list: List[HistoricalReturn]
-    profit: Decimal
-    annual_rate_of_return: Decimal
-    number_of_days_till_no_loss: Decimal
-    lowest_net_liquidity: Decimal
+class Statistics(EmbeddedDocument):
+    maximum: Decimal = FloatField(required=True)
+    median: Decimal = FloatField(required=True)
+    average: Decimal = FloatField(required=True)
+    minimum: Decimal = FloatField(required=True)
+    standard_deviation: Decimal = FloatField(required=True)
 
-    def __init__(self, symbol: str, starting_balance: Decimal, daily_leverage: Decimal, starting_date: Union[datetime, str] = None, ending_date: Union[datetime, str] = None, raw_historical_data_list: List[HistoricalData] = None):
-        starting_date = datetime.utcfromtimestamp(1) if starting_date is None else datetime.strptime(starting_date, '%Y-%m-%d') if isinstance(starting_date, str) else starting_date
-        ending_date = datetime.today() if ending_date is None else datetime.strptime(ending_date, '%Y-%m-%d') if isinstance(ending_date, str) else ending_date
+    def __init__(self, *args: Tuple[Any], **kwargs: Dict[str, Any]):
+        super().__init__(*args, **kwargs)
+        self.maximum = Decimal(str(self.maximum))
+        self.median = Decimal(str(self.median))
+        self.average = Decimal(str(self.average))
+        self.minimum = Decimal(str(self.minimum))
+        self.standard_deviation = Decimal(str(self.standard_deviation))
 
-        self.symbol = symbol
-        self.raw_historical_data_list = IBKR.get_historical_data(symbol) if raw_historical_data_list is None else raw_historical_data_list
-        self.historical_data_list = HistoricalDataHelper.filter_historical_data_list(starting_date, ending_date, self.raw_historical_data_list)
-        self.starting_date = self.historical_data_list[0].datetime
-        self.ending_date = self.historical_data_list[-1].datetime
-        self.historical_returns_list = InvestmentAnalysisHelper.get_leveraged_historical_data_list(starting_balance, daily_leverage, self.historical_data_list)
-        self.profit = self.historical_returns_list[-1].net_liquidity - starting_balance
-        self.annual_rate_of_return = InvestmentAnalysisHelper.get_annual_rate_of_return(starting_balance, self.historical_returns_list[-1].net_liquidity, InvestmentAnalysisHelper.get_number_of_years(self.starting_date, self.ending_date))
-        self.number_of_days_till_no_loss, self.lowest_net_liquidity = InvestmentAnalysisHelper.get_number_of_days_till_no_loss(self.historical_returns_list)
-
-
-@dataclass
-class InvestmentAnalysisStatisticsData:
-    maximum: Decimal
-    median: Decimal
-    average: Decimal
-    minimum: Decimal
-    standard_deviation: Decimal
-
-    def __init__(self, data: List[Any]):
-        self.maximum = max(data)
-        self.median = statistics.median(data)
-        self.average = statistics.mean(data)
-        self.minimum = min(data)
-        self.standard_deviation = Decimal(str(statistics.stdev(data)))
+    @staticmethod
+    def get(data: List[Decimal]) -> "Statistics":
+        return Statistics(
+            **{"maximum": Decimal(str(max(data))),
+               "median": Decimal(str(statistics.median(data))),
+               "average": Decimal(str(statistics.mean(data))),
+               "minimum": Decimal(str(min(data))),
+               "standard_deviation": Decimal(str(statistics.stdev(data)))}
+        )
 
 
-@dataclass
-class InvestmentAnalysisStatistics:
-    profit: InvestmentAnalysisStatisticsData
-    annual_rate_of_return: InvestmentAnalysisStatisticsData
-    number_of_days_till_no_loss: InvestmentAnalysisStatisticsData
-    lowest_net_liquidity: InvestmentAnalysisStatisticsData
+class HistoricalStockPriceData(DatabaseDocument):
+    stock_symbol: str = StringField(required=True)
+    open: Decimal = FloatField()
+    high: Decimal = FloatField()
+    low: Decimal = FloatField()
+    close: Decimal = FloatField(required=True)
+    volume: Decimal = FloatField()
+    timestamp: datetime.datetime = DateTimeField(required=True)
 
-    def __init__(self, investment_analysis_list: List[InvestmentAnalysis]):
-        self.profit = InvestmentAnalysisStatisticsData([data.profit for data in investment_analysis_list])
-        self.annual_rate_of_return = InvestmentAnalysisStatisticsData([data.annual_rate_of_return for data in investment_analysis_list])
-        self.number_of_days_till_no_loss = InvestmentAnalysisStatisticsData([data.number_of_days_till_no_loss for data in investment_analysis_list])
-        self.lowest_net_liquidity = InvestmentAnalysisStatisticsData([data.lowest_net_liquidity for data in investment_analysis_list])
+    meta = {"indexes": ["stock_symbol", "timestamp"]}
+
+    def __init__(self, *args, **values):
+        super().__init__(*args, **values)
+        self.open = Decimal(str(self.open))
+        self.high = Decimal(str(self.high))
+        self.low = Decimal(str(self.low))
+        self.close = Decimal(str(self.close))
+        self.volume = Decimal(str(self.volume))
+
+    @staticmethod
+    def get(stock_symbol: str, from_date: datetime.datetime = datetime.datetime.now().replace(year=(datetime.datetime.now().year - 10))) -> List["HistoricalStockPriceData"]:
+        historical_data_list: List[HistoricalStockPriceData] = sorted(cast(List[HistoricalStockPriceData], HistoricalStockPriceData.objects(stock_symbol=stock_symbol, timestamp__gte=from_date)), key=lambda data: data.timestamp)
+
+        if len(historical_data_list) > 0 and historical_data_list[-1].timestamp.date() == datetime.datetime.now().date():
+            return historical_data_list
+
+        updated_historical_data_list: List["HistoricalStockPriceData"] = HistoricalStockPriceData.get_updated_data(stock_symbol, historical_data_list[-1].timestamp if len(historical_data_list) > 0 else from_date)
+        return historical_data_list + updated_historical_data_list
+
+    @staticmethod
+    def get_updated_data(stock_symbol: str, from_date: datetime.datetime) -> List["HistoricalStockPriceData"]:
+        new_historical_data_list: List[HistoricalStockPriceData] = []
+        if ibkr.models.IBKR.is_connection_successful():
+            new_historical_data_list = HistoricalStockPriceData.get_from_ibkr(stock_symbol, from_date)
+
+        if len(new_historical_data_list) > 1:
+            HistoricalStockPriceData.objects.insert(new_historical_data_list)
+
+        return new_historical_data_list
+
+    @staticmethod
+    def get_from_ibkr(stock_symbol: str, from_date: datetime.datetime = datetime.datetime.now().replace(year=(datetime.datetime.now().year - 10))) -> List["HistoricalStockPriceData"]:
+        historical_data_list: List[HistoricalStockPriceData] = []
+        ibkr_historical_data_list: List[ibkr.models.HistoricalData] = ibkr.models.IBKR.get_historical_data(stock_symbol)
+        for ibkr_historical_data in ibkr_historical_data_list:
+            if ibkr_historical_data.timestamp > from_date:
+                ibkr_historical_data_dict: Dict[str, Any] = asdict(ibkr_historical_data)
+                ibkr_historical_data_dict.pop("average")
+                ibkr_historical_data_dict["stock_symbol"] = stock_symbol
+                historical_data_list.append(HistoricalStockPriceData(**ibkr_historical_data_dict))
+
+        return historical_data_list
+
+    @staticmethod
+    def get_from_date(date: datetime.datetime, historical_data_list: List["HistoricalStockPriceData"], is_get_next_date_if_unavailable: bool = True) -> Optional["HistoricalStockPriceData"]:
+        filtered_historical_data_list: List[HistoricalStockPriceData] = sorted(list(filter(lambda data: data.timestamp >= date, historical_data_list)), key=lambda data: data.timestamp)
+        if len(filtered_historical_data_list) == 0 or (not is_get_next_date_if_unavailable and filtered_historical_data_list[0] != date):
+            return None
+        return filtered_historical_data_list[0]
 
 
-@dataclass
-class InvestmentAnalysisSimulation:
-    symbol: str
-    investment: Decimal
-    leverage: Decimal
-    starting_date: datetime
-    ending_date: datetime
-    number_of_years_of_investment: Decimal
-    investment_analysis_list: List[InvestmentAnalysis]
-    raw_historical_data_list: List[HistoricalData]
-    investment_analysis_statistics: InvestmentAnalysisStatistics
+class PerpetualProfitDate(EmbeddedDocument):
+    investment_date: datetime.datetime = DateTimeField(required=True)
+    perpetual_profit_date: datetime.datetime = DateTimeField(required=True)
+    number_of_years: Decimal = FloatField(required=True)
 
-    def __init__(self, symbol: str, investment: Decimal, leverage: Decimal, starting_date: Union[datetime, str], ending_date: Union[datetime, str], number_of_years_of_investment: Decimal, raw_historical_data_list: List[HistoricalData] = None):
-        self.starting_date = datetime.utcfromtimestamp(1) if starting_date is None else datetime.strptime(starting_date, '%Y-%m-%d') if isinstance(starting_date, str) else starting_date
-        self.ending_date = datetime.today() if ending_date is None else datetime.strptime(ending_date, '%Y-%m-%d') if isinstance(ending_date, str) else ending_date
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.number_of_years = Decimal(str(self.number_of_years))
 
-        self.symbol = symbol
-        self.investment = investment
-        self.leverage = leverage
-        self.number_of_years_of_investment = Decimal(str(number_of_years_of_investment))
-        self.raw_historical_data_list = IBKR.get_historical_data(self.symbol) if raw_historical_data_list is None else raw_historical_data_list
-        self.get_investment_analysis_list()
-        self.investment_analysis_statistics = InvestmentAnalysisStatistics(self.investment_analysis_list)
 
-    def get_investment_analysis_list(self) -> None:
-        self.investment_analysis_list = []
-        investment_starting_date = max(self.starting_date, self.raw_historical_data_list[0].datetime)
-        next_investment_starting_date: datetime = investment_starting_date
-        next_investment_ending_date = InvestmentAnalysisHelper.add_years_to_date(next_investment_starting_date, self.number_of_years_of_investment)
+class NumberOfYearsTillPerpetualProfit(DatabaseDocument):
+    stock_symbol: str = StringField(primary_key=True)
+    data: List[PerpetualProfitDate] = ListField(EmbeddedDocumentField(PerpetualProfitDate))
+    statistics: Statistics = EmbeddedDocumentField(Statistics)
 
-        while next_investment_ending_date <= min(self.ending_date, self.raw_historical_data_list[-1].datetime):
-            self.investment_analysis_list.append(InvestmentAnalysis(self.symbol, self.investment, self.leverage, starting_date=next_investment_starting_date, ending_date=next_investment_ending_date, raw_historical_data_list=self.raw_historical_data_list))
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
 
-            next_investment_starting_date = next_investment_starting_date + timedelta(days=1)
-            next_investment_ending_date = InvestmentAnalysisHelper.add_years_to_date(next_investment_starting_date, self.number_of_years_of_investment)
+    @staticmethod
+    def get_from_historical_stock_price_data_list(historical_stock_price_data: List[HistoricalStockPriceData], update_database: bool = False) -> "NumberOfYearsTillPerpetualProfit":
+        perpetual_profit_date_list: List[PerpetualProfitDate] = []
+        if len(historical_stock_price_data) == 0:
+            raise Exception("No market data")
+
+        for historical_data in historical_stock_price_data:
+            profit_historical_data_list: List[HistoricalStockPriceData] = list(filter(lambda data: data.close >= historical_data.close and data.timestamp > historical_data.timestamp, historical_stock_price_data))
+
+            date_of_no_loss: datetime = None
+
+            for profit_historical_data in profit_historical_data_list:
+                future_loss_historical_data_list: List[HistoricalStockPriceData] = list(filter(lambda data: data.close < historical_data.close and data.timestamp > profit_historical_data.timestamp, historical_stock_price_data))
+                if len(future_loss_historical_data_list) == 0:
+                    date_of_no_loss = profit_historical_data.timestamp
+                    break
+
+            if date_of_no_loss is None:
+                continue
+
+            year_frac: Decimal = calculations.get_year_frac(historical_data.timestamp, date_of_no_loss)
+            perpetual_profit_date_list.append(PerpetualProfitDate(investment_date=historical_data.timestamp, perpetual_profit_date=date_of_no_loss, number_of_years=year_frac))
+
+        number_of_years_till_perpetual_profit: NumberOfYearsTillPerpetualProfit = NumberOfYearsTillPerpetualProfit(
+            stock_symbol=historical_stock_price_data[0].stock_symbol,
+            data=perpetual_profit_date_list,
+            statistics=Statistics.get([perpetual_profit_date.number_of_years for perpetual_profit_date in perpetual_profit_date_list])
+        )
+
+        if update_database:
+            number_of_years_till_perpetual_profit.save()
+
+        return number_of_years_till_perpetual_profit

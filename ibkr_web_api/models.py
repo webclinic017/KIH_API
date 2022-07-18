@@ -201,7 +201,7 @@ class Instrument:
 
 
 @dataclass
-class History:
+class HistoricalData:
     symbol: str
     high: Decimal
     low: Decimal
@@ -218,14 +218,14 @@ class History:
         self.timestamp = timestamp
 
     @classmethod
-    def get(cls, symbol: str, instrument_type: InstrumentType, exchange: StockExchanges, period: str = "10y", bar: str = "1d") -> List["History"]:
+    def get(cls, symbol: str, instrument_type: InstrumentType, exchange: StockExchanges, period: str = "10y", bar: str = "1d") -> List["HistoricalData"]:
         stock: Instrument = Instrument.get(symbol, instrument_type, exchange)
         market_data_history: MarketDataHistory = MarketDataHistory.call(stock.contract_id, period, bar)
-        stock_history_list: List[History] = []
+        stock_history_list: List[HistoricalData] = []
         for past_market_data in market_data_history.market_data_history:
-            stock_history_list.append(History(symbol, past_market_data.high, past_market_data.low,
-                                              past_market_data.open, past_market_data.close,
-                                              past_market_data.timestamp))
+            stock_history_list.append(HistoricalData(symbol, past_market_data.high, past_market_data.low,
+                                                     past_market_data.open, past_market_data.close,
+                                                     past_market_data.timestamp))
         return stock_history_list
 
 

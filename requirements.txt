@@ -9,3 +9,4 @@ validators
 dacite
 mongoengine
 pymongo
+dataclass_csv
