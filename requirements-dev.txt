@@ -1,0 +1,12 @@
+requests
+urllib3
+pytz
+python-dateutil
+pandas
+numpy
+ibapi
+validators
+dacite
+mongoengine
+pymongo
+mypy
